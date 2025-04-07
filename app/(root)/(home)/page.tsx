@@ -1,10 +1,26 @@
+"use client";
+
 import React from "react";
 import { IoIosArrowRoundForward } from "react-icons/io";
+import Link from "next/link";
+import { motion } from "framer-motion";
 
 import { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
 import { ShinyButton } from "@/components/magicui/shiny-button";
 import CourseCarousel from "@/components/CourseCarousel";
 import Navbar from "@/components/Navbar";
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1]
+    }
+  }
+};
 
 const courses = [
   {
@@ -41,7 +57,12 @@ const page = () => {
       <Navbar />
       <section className="flex-center flex-col">
         <div className="container">
-          <div className="z-10 flex min-h-14 items-center justify-center">
+          <motion.div 
+            className="z-10 flex min-h-14 items-center justify-center"
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+          >
             <div className="flex-center h-7 rounded-full border border-zinc-700 bg-zinc-800 text-[12px] transition-all ease-in">
               <AnimatedShinyText className="inline-flex gap-2 items-center justify-center px-2 py-1 text-zinc-400 transition ease-out">
                 <div className="w-3 h-3 rounded-full flex-center bg-[#ffc20b31] ">
@@ -50,24 +71,42 @@ const page = () => {
                 <span>Interactive learning platform</span>
               </AnimatedShinyText>
             </div>
-          </div>
+          </motion.div>
 
-          <h1 className="text-center bg-gradient-to-br from-white from-30% to-white/40 bg-clip-text py-6 font-medium leading-none tracking-tighter text-transparent text-balance text-3xl md:text-5xl">
+          <motion.h1 
+            className="text-center bg-gradient-to-br from-white from-30% to-white/40 bg-clip-text py-6 font-medium leading-none tracking-tighter text-transparent text-balance text-3xl md:text-5xl"
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+          >
             Turn passive video watching
             <br className="block" /> into an active, search-driven,
             practice-oriented
             <br className="block" /> learning journey
-          </h1>
-          <div className="w-full flex-center sm:mt-9 mt-2 mb-16">
-            <ShinyButton className="w-auto">
-              Start Learning
-              <IoIosArrowRoundForward className="text-xl" />
-            </ShinyButton>
-          </div>
+          </motion.h1>
+          
+          <motion.div 
+            className="w-full flex-center sm:mt-9 mt-2 mb-16"
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+          >
+            <Link href="/pricing">
+              <ShinyButton className="w-auto">
+                Start Learning
+                <IoIosArrowRoundForward className="text-xl" />
+              </ShinyButton>
+            </Link>
+          </motion.div>
 
-          <div className="py-8 max-sm:py-4">
+          <motion.div 
+            className="py-8 max-sm:py-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
             <CourseCarousel courses={courses} />
-          </div>
+          </motion.div>
         </div>
       </section>
     </>
