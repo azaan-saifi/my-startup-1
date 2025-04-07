@@ -52,7 +52,7 @@ const page = () => {
             </div>
           </div>
 
-          <h1 className="text-center bg-gradient-to-br from-white from-30% to-white/40 bg-clip-text py-6 max-sm:text-3xl font-medium leading-none tracking-tighter text-transparent text-balance sm:text-6xl md:text-3xl lg:text-5xl">
+          <h1 className="text-center bg-gradient-to-br from-white from-30% to-white/40 bg-clip-text py-6 font-medium leading-none tracking-tighter text-transparent text-balance text-3xl md:text-5xl">
             Turn passive video watching
             <br className="block" /> into an active, search-driven,
             practice-oriented
