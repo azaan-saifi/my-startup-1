@@ -56,15 +56,93 @@ const PricingPage = () => {
         const response = await fetch('/api/pricing');
         
         if (!response.ok) {
-          throw new Error('Failed to fetch pricing plans');
+          console.error('API response not OK:', response.status, response.statusText);
+          throw new Error(`Failed to fetch pricing plans: ${response.status}`);
         }
         
         const data = await response.json();
-        setPlans(data);
+        console.log('Fetched pricing plans:', data);
+        
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          console.warn('Empty or invalid pricing data received, using fallback data');
+          // Fallback data in case API returns empty result
+          setPlans([
+            {
+              id: "1",
+              name: "Basic Bender",
+              price: 29,
+              interval: "monthly",
+              description: "Perfect for beginners looking to start their coding journey.",
+              features: [
+                "Access to core courses",
+                "Practice exercises",
+                "Community forum access",
+                "Monthly coding challenges",
+                "Email support"
+              ],
+              isPopular: false,
+            },
+            {
+              id: "2",
+              name: "Master Bender",
+              price: 89,
+              interval: "monthly",
+              description: "For serious learners ready to master the code of the Matrix.",
+              features: [
+                "All Basic features",
+                "Advanced courses",
+                "1-on-1 mentoring sessions",
+                "Project reviews",
+                "Priority support",
+                "Certificate of completion",
+                "Job opportunity alerts"
+              ],
+              isPopular: true,
+            }
+          ]);
+        } else {
+          setPlans(data);
+        }
         setError(null);
       } catch (error) {
         console.error('Error fetching pricing plans:', error);
         setError('Failed to load pricing plans. Please try again later.');
+        
+        // Use fallback data in case of error
+        setPlans([
+          {
+            id: "1",
+            name: "Basic Bender",
+            price: 29,
+            interval: "monthly",
+            description: "Perfect for beginners looking to start their coding journey.",
+            features: [
+              "Access to core courses",
+              "Practice exercises",
+              "Community forum access",
+              "Monthly coding challenges",
+              "Email support"
+            ],
+            isPopular: false,
+          },
+          {
+            id: "2",
+            name: "Master Bender",
+            price: 89,
+            interval: "monthly",
+            description: "For serious learners ready to master the code of the Matrix.",
+            features: [
+              "All Basic features",
+              "Advanced courses",
+              "1-on-1 mentoring sessions",
+              "Project reviews",
+              "Priority support",
+              "Certificate of completion",
+              "Job opportunity alerts"
+            ],
+            isPopular: true,
+          }
+        ]);
       } finally {
         setIsLoading(false);
       }

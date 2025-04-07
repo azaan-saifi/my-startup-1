@@ -2,23 +2,24 @@
   {
     "id": "1",
     "name": "Basic Bender",
-    "price": 8900000,
+    "price": 890,
     "interval": "monthly",
-    "description": "Perfect for beginners looking to start their coding journey. by ken",
+    "description": "Perfect for beginners looking to start their coding journey. by ken abey salle",
     "features": [
       "Community forum access",
       "Monthly coding challenges",
       "Email support",
-      "helulu"
+      "helulu",
+      "nggz"
     ],
-    "isPopular": true
+    "isPopular": false
   },
   {
     "id": "2",
     "name": "Master Bender",
-    "price": 0,
+    "price": 20,
     "interval": "monthly",
-    "description": "azaan bhai ki taraf se free.",
+    "description": "azaan bhai ki taraf se free. hahaha",
     "features": [
       "Azaan bhai ka number. ",
       "sufyaan ka number",
@@ -26,7 +27,8 @@
       "Project reviews",
       "Priority support",
       "Certificate of completion",
-      "Job opportunity alerts"
+      "Job opportunity alerts",
+      "yowaimooo"
     ],
     "isPopular": true
   }

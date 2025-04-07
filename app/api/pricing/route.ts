@@ -12,47 +12,78 @@ const ensureDataDir = () => {
   }
 };
 
+// Get default pricing data
+const getDefaultPricingData = () => {
+  return [
+    {
+      id: "1",
+      name: "Basic Bender",
+      price: 29,
+      interval: "monthly",
+      description: "Perfect for beginners looking to start their coding journey.",
+      features: [
+        "Access to core courses",
+        "Practice exercises",
+        "Community forum access",
+        "Monthly coding challenges",
+        "Email support"
+      ],
+      isPopular: false,
+    },
+    {
+      id: "2",
+      name: "Master Bender",
+      price: 89,
+      interval: "monthly",
+      description: "For serious learners ready to master the code of the Matrix.",
+      features: [
+        "All Basic features",
+        "Advanced courses",
+        "1-on-1 mentoring sessions",
+        "Project reviews",
+        "Priority support",
+        "Certificate of completion",
+        "Job opportunity alerts"
+      ],
+      isPopular: true,
+    }
+  ];
+};
+
 // Initialize with default pricing data if file doesn't exist
 const initializeDataFile = () => {
+  // In production (Vercel), we can't write to the filesystem
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  
   ensureDataDir();
   
   if (!fs.existsSync(dataFilePath)) {
-    const defaultPricingPlans = [
-      {
-        id: "1",
-        name: "Basic Bender",
-        price: 29,
-        interval: "monthly",
-        description: "Perfect for beginners looking to start their coding journey.",
-        features: [
-          "Access to core courses",
-          "Practice exercises",
-          "Community forum access",
-          "Monthly coding challenges",
-          "Email support"
-        ],
-        isPopular: false,
-      },
-      {
-        id: "2",
-        name: "Master Bender",
-        price: 89,
-        interval: "monthly",
-        description: "For serious learners ready to master the code of the Matrix.",
-        features: [
-          "All Basic features",
-          "Advanced courses",
-          "1-on-1 mentoring sessions",
-          "Project reviews",
-          "Priority support",
-          "Certificate of completion",
-          "Job opportunity alerts"
-        ],
-        isPopular: true,
+    fs.writeFileSync(dataFilePath, JSON.stringify(getDefaultPricingData(), null, 2));
+  }
+};
+
+// Read pricing data
+const readPricingData = () => {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      // In production, use the embedded default data or fetch from a database
+      // For now, returning default data
+      // In a real application, this would be replaced with a database call
+      return getDefaultPricingData();
+    } else {
+      // In development, use the local file
+      if (fs.existsSync(dataFilePath)) {
+        const data = fs.readFileSync(dataFilePath, "utf8");
+        return JSON.parse(data);
+      } else {
+        return getDefaultPricingData();
       }
-    ];
-    
-    fs.writeFileSync(dataFilePath, JSON.stringify(defaultPricingPlans, null, 2));
+    }
+  } catch (error) {
+    console.error("Error reading pricing data:", error);
+    return getDefaultPricingData();
   }
 };
 
@@ -61,8 +92,7 @@ export async function GET() {
   try {
     initializeDataFile();
     
-    const data = fs.readFileSync(dataFilePath, "utf8");
-    const plans = JSON.parse(data);
+    const plans = readPricingData();
     
     return NextResponse.json(plans);
   } catch (error) {
@@ -77,8 +107,6 @@ export async function GET() {
 // POST /api/pricing - Update pricing plans
 export async function POST(request: NextRequest) {
   try {
-    ensureDataDir();
-    
     const plans = await request.json();
     
     // Validate the data
@@ -89,7 +117,19 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Write the updated plans to the file
+    // In production, we can't write to the filesystem
+    if (process.env.NODE_ENV === 'production') {
+      // In a real application, this would write to a database
+      // For now, just simulate success
+      console.log('Production environment detected - would save:', plans);
+      return NextResponse.json({ 
+        success: true, 
+        message: "Pricing plans updated successfully (note: changes won't persist in production without a database)" 
+      });
+    }
+    
+    // In development, write to the local file
+    ensureDataDir();
     fs.writeFileSync(dataFilePath, JSON.stringify(plans, null, 2));
     
     return NextResponse.json({ success: true, message: "Pricing plans updated successfully" });
