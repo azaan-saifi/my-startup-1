@@ -1,0 +1,33 @@
+[
+  {
+    "id": "1",
+    "name": "Basic Bender",
+    "price": 8900000,
+    "interval": "monthly",
+    "description": "Perfect for beginners looking to start their coding journey. by ken",
+    "features": [
+      "Community forum access",
+      "Monthly coding challenges",
+      "Email support",
+      "helulu"
+    ],
+    "isPopular": true
+  },
+  {
+    "id": "2",
+    "name": "Master Bender",
+    "price": 0,
+    "interval": "monthly",
+    "description": "azaan bhai ki taraf se free.",
+    "features": [
+      "Azaan bhai ka number. ",
+      "sufyaan ka number",
+      "1-on-1 mentoring sessions",
+      "Project reviews",
+      "Priority support",
+      "Certificate of completion",
+      "Job opportunity alerts"
+    ],
+    "isPopular": true
+  }
+]

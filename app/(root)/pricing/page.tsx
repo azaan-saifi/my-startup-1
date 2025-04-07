@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { FiCheck } from "react-icons/fi";
 import { motion } from "framer-motion";
@@ -9,6 +9,7 @@ import { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
 import { ShinyButton } from "@/components/magicui/shiny-button";
 import Navbar from "@/components/Navbar";
 
+// Animation variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 10 },
   visible: { 
@@ -31,7 +32,47 @@ const staggerContainer = {
   }
 };
 
+// Define the pricing plan interface
+interface PricingPlan {
+  id: string;
+  name: string;
+  price: number;
+  interval: string;
+  description: string;
+  features: string[];
+  isPopular: boolean;
+}
+
 const PricingPage = () => {
+  const [plans, setPlans] = useState<PricingPlan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch pricing plans from the API
+  useEffect(() => {
+    const fetchPricingPlans = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/pricing');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch pricing plans');
+        }
+        
+        const data = await response.json();
+        setPlans(data);
+        setError(null);
+      } catch (error) {
+        console.error('Error fetching pricing plans:', error);
+        setError('Failed to load pricing plans. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchPricingPlans();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -63,97 +104,72 @@ const PricingPage = () => {
             <br className="block" /> a code bender today
           </motion.h1>
           
-          <motion.div 
-            className="w-full flex justify-center gap-8 mt-12 max-w-5xl mx-auto max-lg:flex-col max-lg:items-center"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Basic Plan */}
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-pulse text-zinc-400">Loading pricing plans...</div>
+            </div>
+          ) : error ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="text-rose-500">{error}</div>
+            </div>
+          ) : (
             <motion.div 
-              variants={fadeInUp}
-              className="relative flex flex-col w-full max-w-md bg-black/60 backdrop-blur-sm border border-zinc-800 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/20%)]"
+              className="w-full flex justify-center gap-8 mt-12 max-w-5xl mx-auto max-lg:flex-col max-lg:items-center"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-              
-              <div className="p-6 border-b border-zinc-800">
-                <h3 className="text-xl font-medium text-white mb-2">Basic Bender</h3>
-                <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-white">$29</span>
-                  <span className="text-zinc-400 ml-1">/month</span>
-                </div>
-                <p className="mt-4 text-zinc-400 text-sm">Perfect for beginners looking to start their coding journey.</p>
-              </div>
-              
-              <div className="flex-1 p-6">
-                <ul className="space-y-3">
-                  {["Access to core courses", "Practice exercises", "Community forum access", "Monthly coding challenges", "Email support"].map((feature) => (
-                    <li key={feature} className="flex items-start">
-                      <FiCheck className="text-[#f0bb1c] mt-1 mr-2" />
-                      <span className="text-zinc-300 text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div className="p-6 border-t border-zinc-800">
-                <ShinyButton className="w-full justify-center">
-                  Get Started
-                  <IoIosArrowRoundForward className="text-xl" />
-                </ShinyButton>
-              </div>
+              {plans.map((plan) => (
+                <motion.div 
+                  key={plan.id}
+                  variants={fadeInUp}
+                  className={`relative flex flex-col w-full max-w-md bg-black/60 backdrop-blur-sm border ${plan.isPopular ? 'border-zinc-700' : 'border-zinc-800'} rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/20%)]`}
+                >
+                  <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${plan.isPopular ? 'via-[#f0bb1c]/50' : 'via-white/30'} to-transparent`}></div>
+                  
+                  {plan.isPopular && (
+                    <>
+                      <div className="absolute inset-0 border border-[#f0bb1c]/20 rounded-lg pointer-events-none"></div>
+                      <div className="absolute top-6 right-6">
+                        <div className="px-3 py-1 bg-[#ffc20b31] rounded-full border border-[#f0bb1c]/30">
+                          <span className="text-xs font-medium text-[#f0bb1c]">RECOMMENDED</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="p-6 border-b border-zinc-800">
+                    <h3 className="text-xl font-medium text-white mb-2">{plan.name}</h3>
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-bold text-white">${plan.price}</span>
+                      <span className="text-zinc-400 ml-1">/month</span>
+                    </div>
+                    <p className="mt-4 text-zinc-400 text-sm">{plan.description}</p>
+                  </div>
+                  
+                  <div className="flex-1 p-6">
+                    <ul className="space-y-3">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <FiCheck className="text-[#f0bb1c] mt-1 mr-2" />
+                          <span className="text-zinc-300 text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div className="p-6 border-t border-zinc-800">
+                    <ShinyButton 
+                      className={`w-full justify-center ${plan.isPopular ? 'bg-[#ffc20b10] border-[#f0bb1c]/30' : ''}`}
+                    >
+                      {plan.isPopular ? 'Become a Master' : 'Get Started'}
+                      <IoIosArrowRoundForward className="text-xl" />
+                    </ShinyButton>
+                  </div>
+                </motion.div>
+              ))}
             </motion.div>
-            
-            {/* Pro Plan */}
-            <motion.div 
-              variants={fadeInUp}
-              className="relative flex flex-col w-full max-w-md bg-black/60 backdrop-blur-sm border border-zinc-800 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_hsl(var(--primary)/20%)]"
-            >
-              <div className="absolute inset-0 border border-[#f0bb1c]/20 rounded-lg pointer-events-none"></div>
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#f0bb1c]/50 to-transparent"></div>
-              
-              <div className="absolute top-6 right-6">
-                <div className="px-3 py-1 bg-[#ffc20b31] rounded-full border border-[#f0bb1c]/30">
-                  <span className="text-xs font-medium text-[#f0bb1c]">RECOMMENDED</span>
-                </div>
-              </div>
-              
-              <div className="p-6 border-b border-zinc-800">
-                <h3 className="text-xl font-medium text-white mb-2">Master Bender</h3>
-                <div className="flex items-baseline">
-                  <span className="text-3xl font-bold text-white">$89</span>
-                  <span className="text-zinc-400 ml-1">/month</span>
-                </div>
-                <p className="mt-4 text-zinc-400 text-sm">For serious learners ready to master the code of the Matrix.</p>
-              </div>
-              
-              <div className="flex-1 p-6">
-                <ul className="space-y-3">
-                  {[
-                    "All Basic features",
-                    "Full course library access",
-                    "Advanced project tutorials",
-                    "1-on-1 mentoring sessions",
-                    "Priority support",
-                    "Exclusive masterclasses",
-                    "Certification upon completion"
-                  ].map((feature) => (
-                    <li key={feature} className="flex items-start">
-                      <FiCheck className="text-[#f0bb1c] mt-1 mr-2" />
-                      <span className="text-zinc-300 text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              
-              <div className="p-6 border-t border-zinc-800">
-                <ShinyButton className="w-full justify-center bg-[#ffc20b10] border-[#f0bb1c]/30">
-                  Become a Master
-                  <IoIosArrowRoundForward className="text-xl" />
-                </ShinyButton>
-              </div>
-            </motion.div>
-          </motion.div>
+          )}
           
           <motion.div 
             className="mt-16 text-center"
