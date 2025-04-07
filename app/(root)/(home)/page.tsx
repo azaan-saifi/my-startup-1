@@ -2,9 +2,9 @@ import React from "react";
 import { IoIosArrowRoundForward } from "react-icons/io";
 
 import { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
-import Navbar from "@/components/Navbar";
 import { ShinyButton } from "@/components/magicui/shiny-button";
 import CourseCarousel from "@/components/CourseCarousel";
+import Navbar from "@/components/Navbar";
 
 const courses = [
   {

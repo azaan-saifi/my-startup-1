@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ArrowRight } from "lucide-react";
 import { motion, MotionProps, type AnimationProps } from "motion/react";
 import React from "react";
 
