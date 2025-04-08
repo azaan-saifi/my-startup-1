@@ -25,12 +25,12 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
       
       <SidebarWithLogout />
       
-      <div className="flex-1 w-full overflow-y-auto md:pl-64">
-        <div className="absolute inset-0 bg-gradient-radial from-black via-yellow-500/5 to-transparent opacity-60 -z-10"></div>
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-yellow-500/10 to-transparent -z-10"></div>
+      <div className="flex-1 w-full md:pl-64">
+        <div className="fixed inset-0 bg-gradient-radial from-black via-yellow-500/5 to-transparent opacity-60 -z-10"></div>
+        <div className="fixed inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-yellow-500/10 to-transparent -z-10"></div>
         
         <PageTransition>
-          <main className="p-3 md:p-6 mt-16 md:mt-0 pb-20 md:pb-6 max-w-full overflow-x-hidden">
+          <main className="p-3 md:p-6 mt-16 md:mt-0 pb-20 md:pb-6 max-w-full">
             {children}
           </main>
         </PageTransition>

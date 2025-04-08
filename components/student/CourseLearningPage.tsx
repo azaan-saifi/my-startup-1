@@ -53,9 +53,25 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
   const [fullscreen, setFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(false);
+  const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
+  // Clear controls timeout and set a new one
+  const resetControlsTimeout = () => {
+    if (controlsTimeout) clearTimeout(controlsTimeout);
+    setShowControls(true);
+    
+    const timeout = setTimeout(() => {
+      if (playing) setShowControls(false);
+    }, 3000);
+    
+    setControlsTimeout(timeout);
+  };
+  
+  // Event handlers
   const handleProgress = (state: { played: number; playedSeconds: number }) => {
     onProgress(state.played * 100);
     setCurrentTime(state.playedSeconds);
@@ -82,6 +98,25 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
     }
   };
   
+  const handlePlayPause = () => {
+    setPlaying(!playing);
+    resetControlsTimeout();
+  };
+  
+  const handleSeekBackward = () => {
+    const newTime = Math.max(0, currentTime - 10);
+    setCurrentTime(newTime);
+    playerRef.current?.seekTo(newTime, 'seconds');
+    resetControlsTimeout();
+  };
+  
+  const handleSeekForward = () => {
+    const newTime = Math.min(duration, currentTime + 10);
+    setCurrentTime(newTime);
+    playerRef.current?.seekTo(newTime, 'seconds');
+    resetControlsTimeout();
+  };
+  
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
@@ -90,26 +125,160 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
     } else {
       setMuted(false);
     }
+    resetControlsTimeout();
+  };
+  
+  const handleVolumeAdjust = (increase: boolean) => {
+    let newVolume;
+    
+    if (increase) {
+      newVolume = Math.min(1, volume + 0.1);
+    } else {
+      newVolume = Math.max(0, volume - 0.1);
+    }
+    
+    setVolume(newVolume);
+    if (newVolume === 0) {
+      setMuted(true);
+    } else if (muted) {
+      setMuted(false);
+    }
+    
+    resetControlsTimeout();
+  };
+  
+  const toggleMute = () => {
+    setMuted(!muted);
+    resetControlsTimeout();
   };
   
   const toggleFullscreen = () => {
     if (containerRef.current) {
-      if (!document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch(err => {
-          console.error(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-      } else {
-        document.exitFullscreen();
+      try {
+        if (!document.fullscreenElement) {
+          containerRef.current.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      } catch (err) {
+        console.error("Fullscreen API error:", err);
       }
     }
     setFullscreen(!fullscreen);
+    resetControlsTimeout();
+  };
+  
+  const changePlaybackRate = () => {
+    // Cycle through common playback rates: 0.5, 1, 1.25, 1.5, 2
+    const rates = [0.5, 1, 1.25, 1.5, 2];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % rates.length;
+    setPlaybackRate(rates[nextIndex]);
+    resetControlsTimeout();
+  };
+
+  // Keyboard event handler
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Prevent default behaviors for certain keys
+    if ([" ", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "f", "m"].includes(e.key)) {
+      e.preventDefault();
+    }
+    
+    // Handle key events
+    switch (e.key) {
+      case " ": // Space bar
+        handlePlayPause();
+        break;
+      case "ArrowLeft": // Left arrow
+        handleSeekBackward();
+        break;
+      case "ArrowRight": // Right arrow
+        handleSeekForward();
+        break;
+      case "ArrowUp": // Up arrow
+        handleVolumeAdjust(true);
+        break;
+      case "ArrowDown": // Down arrow
+        handleVolumeAdjust(false);
+        break;
+      case "f": // F key for fullscreen
+        toggleFullscreen();
+        break;
+      case "m": // M key for mute
+        toggleMute();
+        break;
+      case "p": // P key for changing playback speed
+        changePlaybackRate();
+        break;
+      default:
+        break;
+    }
+  };
+  
+  // Effect for keyboard event listeners
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [playing, currentTime, duration, volume, muted, fullscreen]);
+  
+  // Effect to handle fullscreen change
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+  
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (controlsTimeout) clearTimeout(controlsTimeout);
+    };
+  }, [controlsTimeout]);
+  
+  // Initialize controls visibility
+  useEffect(() => {
+    resetControlsTimeout();
+  }, []);
+
+  // Progress bar with improved touch handling
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const offsetX = clientX - rect.left;
+    const percentage = offsetX / rect.width;
+    const newTime = percentage * duration;
+    setCurrentTime(newTime);
+    playerRef.current?.seekTo(newTime, 'seconds');
   };
 
   return (
     <div 
       ref={containerRef}
       className={`relative group bg-black w-full ${fullscreen ? 'fixed inset-0 z-50' : 'aspect-video rounded-lg overflow-hidden'}`}
+      onMouseMove={resetControlsTimeout}
+      onMouseEnter={() => setShowControls(true)}
+      onMouseLeave={() => playing && setShowControls(false)}
+      onClick={() => handlePlayPause()}
+      tabIndex={0} // Make div focusable for keyboard events
     >
+      {/* Play button overlay for initial click */}
+      {!playing && (
+        <div className="absolute inset-0 flex items-center justify-center cursor-pointer z-10">
+          <div className="bg-black/40 rounded-full p-5 transition-transform transform hover:scale-110">
+            <FiPlay className="w-10 h-10 text-white" />
+          </div>
+        </div>
+      )}
+      
       <div className="absolute inset-0 flex items-center justify-center">
         <ReactPlayer
           ref={playerRef}
@@ -119,15 +288,19 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
           playing={playing}
           volume={volume}
           muted={muted}
-          playbackRate={1}
+          playbackRate={playbackRate}
           onProgress={handleProgress}
           onDuration={setDuration}
           progressInterval={1000}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            handlePlayPause();
+          }}
           style={{ position: 'absolute', top: 0, left: 0 }}
           config={{
             youtube: {
               playerVars: {
-                disablekb: 1,
+                disablekb: 1, // Disable keyboard controls from YouTube
                 controls: 0,
                 modestbranding: 1,
                 rel: 0,
@@ -150,13 +323,23 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
       </div>
       
       {/* Video controls overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+      <div 
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity duration-300 ${showControls || !playing ? 'opacity-100' : 'opacity-0'}`}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
         {/* Progress bar */}
         <div className="mb-4 flex items-center">
-          <div className="relative w-full h-1.5 bg-zinc-700 rounded-full cursor-pointer">
+          <div 
+            className="relative w-full h-1.5 bg-zinc-700 rounded-full cursor-pointer group" 
+            onClick={handleProgressBarClick}
+            onTouchStart={handleProgressBarClick}
+          >
             <div 
               className="absolute h-full bg-[#f0bb1c] rounded-full" 
               style={{ width: `${(currentTime / duration) * 100}%` }}
+            />
+            <div className="absolute h-3 w-3 bg-[#f0bb1c] rounded-full -mt-[3px] opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ left: `calc(${(currentTime / duration) * 100}% - 3px)` }}
             />
             <input
               type="range"
@@ -180,31 +363,24 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
-              onClick={() => {
-                const newTime = Math.max(0, currentTime - 10);
-                setCurrentTime(newTime);
-                playerRef.current?.seekTo(newTime, 'seconds');
-              }}
-              className="text-white hover:text-[#f0bb1c] transition-colors"
+              onClick={handleSeekBackward}
+              className="text-white hover:text-[#f0bb1c] transition-colors focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded"
               aria-label="Rewind 10 seconds"
             >
               <FiSkipBack className="w-4 h-4" />
             </button>
             
             <button 
-              onClick={() => setPlaying(!playing)}
-              className="text-white hover:text-[#f0bb1c] transition-colors"
+              onClick={handlePlayPause}
+              className="text-white hover:text-[#f0bb1c] transition-colors focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded"
+              aria-label={playing ? "Pause" : "Play"}
             >
               {playing ? <FiPause className="w-6 h-6" /> : <FiPlay className="w-6 h-6" />}
             </button>
             
             <button 
-              onClick={() => {
-                const newTime = Math.min(duration, currentTime + 10);
-                setCurrentTime(newTime);
-                playerRef.current?.seekTo(newTime, 'seconds');
-              }}
-              className="text-white hover:text-[#f0bb1c] transition-colors"
+              onClick={handleSeekForward}
+              className="text-white hover:text-[#f0bb1c] transition-colors focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded"
               aria-label="Forward 10 seconds"
             >
               <FiSkipForward className="w-4 h-4" />
@@ -212,8 +388,9 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
             
             <div className="flex items-center ml-2">
               <button 
-                onClick={() => setMuted(!muted)}
-                className="text-white hover:text-[#f0bb1c] transition-colors mr-2"
+                onClick={toggleMute}
+                className="text-white hover:text-[#f0bb1c] transition-colors mr-2 focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded"
+                aria-label={muted ? "Unmute" : "Mute"}
               >
                 {muted || volume === 0 ? <FiVolumeX className="w-4 h-4" /> : <FiVolume2 className="w-4 h-4" />}
               </button>
@@ -226,20 +403,45 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
                 value={volume}
                 onChange={handleVolumeChange}
                 className="w-20 accent-[#f0bb1c]"
+                aria-label="Volume"
               />
             </div>
+            
+            <button
+              onClick={changePlaybackRate}
+              className="ml-2 px-1.5 py-0.5 text-xs bg-zinc-800 text-white rounded hover:bg-zinc-700 focus:outline-none focus:ring-1 focus:ring-[#f0bb1c]"
+              aria-label="Playback speed"
+            >
+              {playbackRate}x
+            </button>
           </div>
           
           <div className="flex items-center space-x-3">
             <button 
               onClick={toggleFullscreen}
-              className="text-white hover:text-[#f0bb1c] transition-colors"
+              className="text-white hover:text-[#f0bb1c] transition-colors focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded"
+              aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
             >
               {fullscreen ? <FiMinimize className="w-4 h-4" /> : <FiMaximize className="w-4 h-4" />}
             </button>
           </div>
         </div>
       </div>
+      
+      {/* Keyboard shortcuts tooltip - shown in fullscreen */}
+      {fullscreen && showControls && (
+        <div className="absolute top-4 right-4 bg-black/70 rounded-md p-3 text-xs text-white">
+          <h3 className="font-medium mb-1">Keyboard Shortcuts:</h3>
+          <div className="grid grid-cols-2 gap-1">
+            <span>Space</span><span>Play/Pause</span>
+            <span>←/→</span><span>-/+ 10s</span>
+            <span>↑/↓</span><span>Volume</span>
+            <span>M</span><span>Mute</span>
+            <span>F</span><span>Fullscreen</span>
+            <span>P</span><span>Playback Speed</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -301,9 +503,9 @@ const CourseLearningPage = ({ course, initialLessonId }: { course: Course; initi
   const courseProgress = Math.round((completedLessons.size / totalLessons) * 100);
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
+    <div className="flex flex-col h-screen overflow-hidden bg-zinc-950">
       {/* Top navigation */}
-      <div className="border-b border-zinc-800 bg-black/30 backdrop-blur-sm">
+      <div className="border-b border-zinc-800 bg-black/30 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center">
             <button
@@ -357,13 +559,13 @@ const CourseLearningPage = ({ course, initialLessonId }: { course: Course; initi
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="border-r border-zinc-800 bg-zinc-900/50 h-full overflow-y-auto"
+              className="border-r border-zinc-800 bg-zinc-900/50 h-full flex-shrink-0"
             >
               <div className="sticky top-0 z-10 bg-black/50 backdrop-blur-sm border-b border-zinc-800 p-3">
                 <h2 className="text-white font-medium">Course Content</h2>
               </div>
               
-              <div className="p-3">
+              <div className="p-3 overflow-y-auto h-[calc(100vh-180px)]">
                 {course.modules.map(module => (
                   <div key={module.id} className="mb-2 border border-zinc-800 rounded-lg overflow-hidden">
                     <button
@@ -442,9 +644,9 @@ const CourseLearningPage = ({ course, initialLessonId }: { course: Course; initi
         </AnimatePresence>
         
         {/* Main content area */}
-        <div className="flex-1 overflow-y-auto bg-zinc-950">
+        <div className="flex-1 bg-zinc-950" style={{ height: '100%' }}>
           {currentLesson ? (
-            <div className="p-4 space-y-6">
+            <div className="p-4 space-y-6 overflow-y-auto h-[calc(100vh-180px)]" style={{ WebkitOverflowScrolling: 'touch' }}>
               {/* Video area */}
               <div className="w-full bg-black rounded-lg overflow-hidden">
                 <VideoPlayer 
@@ -598,4 +800,4 @@ const CourseLearningPage = ({ course, initialLessonId }: { course: Course; initi
   );
 };
 
-export default CourseLearningPage; 
+export default CourseLearningPage;
