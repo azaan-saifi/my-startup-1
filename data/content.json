@@ -20,8 +20,8 @@
     },
     {
       "id": "3",
-      "title": "I am starting the Last Codebender Nation",
-      "description": "code·bend·er: [Definition] \nUnique individual who has unlocked the ability to read the code of the Matrix, and shape it at will.\nHe is not just some programmer with no purpose.\nHe has a holistic view of every situation.\nThis makes him a feared opponent for all the agents of the Matrix.\nBecause the Codebender is not a slave to the system,\nHe only uses his ability for the sake of mankind.",
+      "title": "Build a Full Stack SaaS Platform with Next.js 13+",
+      "description": "Learn how to build, deploy, and scale a complete SaaS platform using Next.js 13+ with all the modern features including server components, authentication, payments, and more.",
       "imageUrl": "/course3.jpg"
     },
     {

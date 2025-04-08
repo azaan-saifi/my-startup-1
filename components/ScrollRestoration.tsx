@@ -3,19 +3,15 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-export function ScrollRestoration() {
+const ScrollRestoration = () => {
   const pathname = usePathname();
-  
+
   useEffect(() => {
-    // Scroll to top on page change with smooth behavior
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "smooth",
-    });
+    // Scroll to top when pathname changes (page navigation)
+    window.scrollTo(0, 0);
   }, [pathname]);
-  
-  return null;
-}
+
+  return null; // This component doesn't render anything
+};
 
 export default ScrollRestoration; 

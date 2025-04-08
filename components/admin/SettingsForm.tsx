@@ -1,9 +1,18 @@
 import React, { useState } from "react";
 import { FiSave, FiMail, FiLock, FiUser, FiGlobe, FiBell, FiThumbsUp, FiCheck, FiMessageCircle } from "react-icons/fi";
+import { Select } from "@/components/ui/select";
 
 const SettingsForm = () => {
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+  const [timezone, setTimezone] = useState("UTC");
+  
+  const timezoneOptions = [
+    { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+    { value: "EST", label: "EST (Eastern Standard Time)" },
+    { value: "CST", label: "CST (Central Standard Time)" },
+    { value: "PST", label: "PST (Pacific Standard Time)" }
+  ];
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,16 +121,11 @@ const SettingsForm = () => {
                       <label htmlFor="timezone" className="mb-1 block text-sm font-medium text-zinc-400">
                         Timezone
                       </label>
-                      <select
-                        id="timezone"
-                        defaultValue="UTC"
-                        className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-2 text-sm text-white placeholder-zinc-500 focus:border-[#4cc9f0] focus:outline-none"
-                      >
-                        <option value="UTC">UTC (Coordinated Universal Time)</option>
-                        <option value="EST">EST (Eastern Standard Time)</option>
-                        <option value="CST">CST (Central Standard Time)</option>
-                        <option value="PST">PST (Pacific Standard Time)</option>
-                      </select>
+                      <Select
+                        value={timezone}
+                        onChange={setTimezone}
+                        options={timezoneOptions}
+                      />
                     </div>
                   </div>
                 </div>

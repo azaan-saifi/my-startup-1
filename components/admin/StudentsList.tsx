@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { FiSearch, FiMail, FiMessageCircle, FiEye } from "react-icons/fi";
+import { Select } from "@/components/ui/select";
 
 // Sample data - this would come from API in a real application
 const initialStudents = [
@@ -145,6 +146,12 @@ const StudentsList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const statusOptions = [
+    { value: "all", label: "All Students" },
+    { value: "active", label: "Active Only" },
+    { value: "inactive", label: "Inactive Only" }
+  ];
+
   const filteredStudents = students.filter(
     (student) => {
       const matchesSearch = 
@@ -182,15 +189,12 @@ const StudentsList = () => {
           />
         </div>
         
-        <select
-          className="rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-2 text-sm text-white focus:border-[#4cc9f0] focus:outline-none"
+        <Select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Students</option>
-          <option value="active">Active Only</option>
-          <option value="inactive">Inactive Only</option>
-        </select>
+          onChange={setStatusFilter}
+          options={statusOptions}
+          className="sm:w-48"
+        />
       </div>
 
       {/* Mobile View - Card Layout */}

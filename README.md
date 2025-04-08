@@ -1,22 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Interactive Learning Platform
+
+A modern, interactive learning platform built with Next.js, React, and Tailwind CSS.
+
+## Features
+
+- **Course Discovery**: Browse and search through available courses
+- **Course Details**: View comprehensive information about each course
+- **Interactive Video Learning**: Enhanced video player with playback controls, speed adjustment, and progress tracking
+- **Course Progress Tracking**: Keep track of completed lessons and overall course progress
+- **Note-taking**: Take and save notes while watching lessons
+- **Resources**: Access downloadable resources for each lesson
+- **Transcripts**: Read along with lesson transcripts
+
+## Enhanced Learning Experience
+
+The platform features a modern, immersive learning page with:
+
+- **React Player**: High-quality video playback with custom controls
+- **Progress Tracking**: Automatic tracking of lesson completion
+- **Sidebar Navigation**: Easily navigate between lessons and modules
+- **Resource Management**: Access to lesson-specific resources
+- **Note Taking**: Built-in note-taking functionality
+- **Transcripts**: Follow along with lesson content
 
 ## Getting Started
 
-First, run the development server:
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Tech Stack
+
+- **Next.js**: React framework for server-rendered applications
+- **React**: UI library
+- **Tailwind CSS**: Utility-first CSS framework
+- **Framer Motion**: Animation library
+- **React Player**: Video playback
+- **React Icons**: Icon library
+
+## Usage
+
+### Course Learning Page
+
+The `CourseLearningPage` component provides an immersive learning experience:
+
+```jsx
+import CourseLearningPage from "@/components/student/CourseLearningPage";
+
+// Use the component with course data and optional initial lesson ID
+<CourseLearningPage 
+  course={courseData} 
+  initialLessonId="lesson-1" 
+/>
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The component handles:
+- Video playback with React Player
+- Lesson navigation
+- Progress tracking
+- Resource management
+- Note-taking
+- Transcript display
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
