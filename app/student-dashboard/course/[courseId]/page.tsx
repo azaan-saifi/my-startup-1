@@ -14,9 +14,8 @@ import {
 } from 'react-icons/fi';
 
 export default function CourseDetailsPage({ params }: { params: { courseId: string } }) {
-  // Unwrap the params object with React.use()
-  const unwrappedParams = React.use(params);
-  const courseId = unwrappedParams.courseId;
+  // Get courseId directly from params
+  const courseId = params.courseId;
   
   // Determine if this is one of our known courses (for demo purposes)
   const isWebDev = courseId === 'course-1';
