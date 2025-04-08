@@ -13,13 +13,8 @@ import {
   FiUser 
 } from 'react-icons/fi';
 
-export default function CourseDetailsPage({ 
-  params, 
-}: { 
-  params: { courseId: string } 
-}) {
-  // Remove the use() call as it's causing the type error
-  const courseId = params.courseId;
+export default function CourseDetailsPage({ params }: { params: { courseId: string } }) {
+  const { courseId } = params;
   
   // Determine if this is one of our known courses (for demo purposes)
   const isWebDev = courseId === 'course-1';
