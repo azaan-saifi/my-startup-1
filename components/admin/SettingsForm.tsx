@@ -202,20 +202,7 @@ const SettingsForm = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <h4 className="mb-4 text-base font-medium text-white">Two-Factor Authentication</h4>
-                  
-                  <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-                    <div>
-                      <p className="font-medium text-white">Enable Two-Factor Authentication</p>
-                      <p className="text-sm text-zinc-400">Add an extra layer of security to your account</p>
-                    </div>
-                    <label className="relative inline-flex cursor-pointer items-center">
-                      <input type="checkbox" className="peer sr-only" />
-                      <div className="h-6 w-11 rounded-full bg-zinc-700 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#4cc9f0] peer-checked:after:translate-x-full peer-focus:outline-none"></div>
-                    </label>
-                  </div>
-                </div>
+
               </div>
             )}
             
@@ -257,16 +244,7 @@ const SettingsForm = () => {
                     </label>
                   </div>
                   
-                  <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-                    <div>
-                      <p className="font-medium text-white">Marketing Updates</p>
-                      <p className="text-sm text-zinc-400">Receive marketing updates and promotional materials</p>
-                    </div>
-                    <label className="relative inline-flex cursor-pointer items-center">
-                      <input type="checkbox" className="peer sr-only" />
-                      <div className="h-6 w-11 rounded-full bg-zinc-700 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#4cc9f0] peer-checked:after:translate-x-full peer-focus:outline-none"></div>
-                    </label>
-                  </div>
+
                 </div>
               </div>
             )}

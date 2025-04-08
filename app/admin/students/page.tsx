@@ -88,41 +88,6 @@ export default function StudentsPage() {
       <div>
         <StudentsList />
       </div>
-      
-      <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-        
-        <div className="mb-6">
-          <h3 className="text-xl font-medium text-white">Student Engagement Insights</h3>
-          <p className="mt-1 text-sm text-zinc-400">Key metrics about how students interact with your courses</p>
-        </div>
-        
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-            <h4 className="mb-2 text-lg font-medium text-[#4cc9f0]">85%</h4>
-            <p className="text-sm text-white">Complete exercises</p>
-            <p className="text-xs text-zinc-400">Percentage of students who complete practice exercises</p>
-          </div>
-          
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-            <h4 className="mb-2 text-lg font-medium text-[#4cc9f0]">62%</h4>
-            <p className="text-sm text-white">Active forum users</p>
-            <p className="text-xs text-zinc-400">Students who participate in community discussions</p>
-          </div>
-          
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-            <h4 className="mb-2 text-lg font-medium text-[#4cc9f0]">4.2</h4>
-            <p className="text-sm text-white">Average feedback rating</p>
-            <p className="text-xs text-zinc-400">On a scale of 1-5 from course feedback</p>
-          </div>
-          
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-4">
-            <h4 className="mb-2 text-lg font-medium text-[#4cc9f0]">78%</h4>
-            <p className="text-sm text-white">Monthly retention</p>
-            <p className="text-xs text-zinc-400">Students who continue learning month-to-month</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 } 

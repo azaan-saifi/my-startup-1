@@ -13,9 +13,6 @@ import {
 import StatCard from "@/components/admin/StatCard";
 import RevenueChart from "@/components/admin/RevenueChart";
 import EnrollmentChart from "@/components/admin/EnrollmentChart";
-import CoursesDistribution from "@/components/admin/CoursesDistribution";
-import CourseManagement from "@/components/admin/CourseManagement";
-import PricingManagement from "@/components/admin/PricingManagement";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 10 },
@@ -108,19 +105,6 @@ export default function AdminDashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <RevenueChart />
         <EnrollmentChart />
-      </div>
-      
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <CourseManagement />
-        </div>
-        <div>
-          <CoursesDistribution />
-        </div>
-      </div>
-      
-      <div>
-        <PricingManagement />
       </div>
     </div>
   );

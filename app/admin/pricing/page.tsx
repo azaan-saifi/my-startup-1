@@ -25,7 +25,6 @@ export default function PricingPage() {
   const pricingData = [
     { plan: "Basic Bender", conversions: 68, revenue: "24.7%" },
     { plan: "Master Bender", conversions: 124, revenue: "58.3%" },
-    { plan: "Code Sage", conversions: 36, revenue: "17.0%" },
   ];
 
   return (
