@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { 
   FiArrowLeft, 
@@ -13,10 +13,13 @@ import {
   FiUser 
 } from 'react-icons/fi';
 
-export default function CourseDetailsPage({ params }: { params: { courseId: string } }) {
-  // Unwrap params with React.use()
-  const unwrappedParams = use(params);
-  const courseId = unwrappedParams.courseId;
+export default function CourseDetailsPage({ 
+  params, 
+}: { 
+  params: { courseId: string } 
+}) {
+  // Remove the use() call as it's causing the type error
+  const courseId = params.courseId;
   
   // Determine if this is one of our known courses (for demo purposes)
   const isWebDev = courseId === 'course-1';
