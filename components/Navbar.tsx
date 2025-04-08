@@ -27,7 +27,7 @@ const Navbar = () => {
                     Login as Admin
                   </div>
                 </Link>
-                <Link href="/login">
+                <Link href="/student-auth">
                   <div className="block px-4 py-3 text-white hover:bg-zinc-800 transition-colors cursor-pointer">
                     Login as Student
                   </div>
