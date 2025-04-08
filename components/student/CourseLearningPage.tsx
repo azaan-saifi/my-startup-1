@@ -56,6 +56,9 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
   const [showControls, setShowControls] = useState(false);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [qualityOptions, setQualityOptions] = useState<string[]>([]);
+  const [currentQuality, setCurrentQuality] = useState('hd1080');
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -179,6 +182,67 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
     resetControlsTimeout();
   };
 
+  const toggleQualityMenu = () => {
+    setShowQualityMenu(!showQualityMenu);
+    resetControlsTimeout();
+  };
+
+  const changeQuality = (quality: string) => {
+    setCurrentQuality(quality);
+    setShowQualityMenu(false);
+    resetControlsTimeout();
+
+    // Get YouTube player instance
+    if (playerRef.current) {
+      const internalPlayer = playerRef.current.getInternalPlayer('youtube');
+      if (internalPlayer) {
+        // For YouTube: quality values can be: small, medium, large, hd720, hd1080, highres, default
+        if (quality === 'auto') {
+          // For auto, YouTube uses 'default' which automatically adjusts based on connection
+          internalPlayer.setPlaybackQuality('default');
+        } else {
+          internalPlayer.setPlaybackQuality(quality);
+        }
+      }
+    }
+  };
+
+  const handlePlaybackQualityChange = (event: any) => {
+    // This gets called when YouTube changes quality
+    if (event && event.data) {
+      setCurrentQuality(event.data);
+    }
+  };
+
+  // Load available qualities when player is ready
+  const handlePlayerReady = () => {
+    // For YouTube videos
+    if (playerRef.current) {
+      const internalPlayer = playerRef.current.getInternalPlayer('youtube');
+      if (internalPlayer && internalPlayer.getAvailableQualityLevels) {
+        const qualities = internalPlayer.getAvailableQualityLevels();
+        if (qualities && qualities.length > 0) {
+          // Add 'auto' option at the beginning
+          setQualityOptions(['auto', ...qualities]);
+          
+          // Set default quality to 1080p if available, otherwise highest available
+          if (qualities.includes('hd1080')) {
+            changeQuality('hd1080');
+          } else if (qualities.length > 0) {
+            // Try to find the highest quality available
+            const qualityPriority = ['highres', 'hd1080', 'hd720', 'large', 'medium', 'small', 'tiny'];
+            for (const quality of qualityPriority) {
+              if (qualities.includes(quality)) {
+                changeQuality(quality);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
   // Keyboard event handler
   const handleKeyDown = (e: KeyboardEvent) => {
     // Prevent default behaviors for certain keys
@@ -211,6 +275,9 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
         break;
       case "p": // P key for changing playback speed
         changePlaybackRate();
+        break;
+      case "q": // Q key for quality settings
+        toggleQualityMenu();
         break;
       default:
         break;
@@ -260,6 +327,21 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
     playerRef.current?.seekTo(newTime, 'seconds');
   };
 
+  // Format quality label for display
+  const formatQualityLabel = (quality: string) => {
+    switch (quality) {
+      case 'auto': return 'Auto';
+      case 'highres': return '4K';
+      case 'hd1080': return '1080p';
+      case 'hd720': return '720p';
+      case 'large': return '480p';
+      case 'medium': return '360p';
+      case 'small': return '240p';
+      case 'tiny': return '144p';
+      default: return quality;
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -291,6 +373,8 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
           playbackRate={playbackRate}
           onProgress={handleProgress}
           onDuration={setDuration}
+          onReady={handlePlayerReady}
+          onPlaybackQualityChange={handlePlaybackQualityChange}
           progressInterval={1000}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
@@ -417,6 +501,44 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
           </div>
           
           <div className="flex items-center space-x-3">
+            {/* Quality settings */}
+            <div className="relative">
+              <button
+                onClick={toggleQualityMenu}
+                className="text-white hover:text-[#f0bb1c] transition-colors focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded flex items-center px-2 py-1 bg-black/30 text-xs"
+                aria-label="Video quality settings"
+              >
+                <FiSettings className="w-3 h-3 mr-1" />
+                <span>{formatQualityLabel(currentQuality)}</span>
+              </button>
+              
+              {showQualityMenu && qualityOptions.length > 0 && (
+                <div className="absolute bottom-full right-0 mb-2 bg-zinc-900/95 border border-zinc-800 rounded-md overflow-hidden shadow-lg z-10 w-56">
+                  <div className="py-1">
+                    <div className="px-3 py-2 text-xs text-zinc-400 border-b border-zinc-800 flex justify-between items-center">
+                      <span>Quality</span>
+                    </div>
+                    {qualityOptions.map((quality) => (
+                      <button
+                        key={quality}
+                        onClick={() => changeQuality(quality)}
+                        className={`w-full px-4 py-2 text-xs text-left flex items-center justify-between ${quality === currentQuality ? 'bg-zinc-800 text-white' : 'text-white hover:bg-zinc-800/50'}`}
+                      >
+                        <span>{formatQualityLabel(quality)}</span>
+                        {quality === currentQuality && <FiCheck className="w-3 h-3" />}
+                      </button>
+                    ))}
+                    {/* Extra info about Auto quality */}
+                    {qualityOptions.includes('auto') && (
+                      <div className="px-4 py-2 text-xs text-zinc-500 border-t border-zinc-800">
+                        Auto quality adjusts resolution based on your connection speed
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <button 
               onClick={toggleFullscreen}
               className="text-white hover:text-[#f0bb1c] transition-colors focus:outline-none focus:ring-1 focus:ring-[#f0bb1c] rounded"
@@ -439,6 +561,7 @@ const VideoPlayer = ({ url, onProgress, onComplete }: {
             <span>M</span><span>Mute</span>
             <span>F</span><span>Fullscreen</span>
             <span>P</span><span>Playback Speed</span>
+            <span>Q</span><span>Quality</span>
           </div>
         </div>
       )}
