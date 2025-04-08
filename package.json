@@ -6,26 +6,15 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "populate-redis": "node scripts/populate-redis.js"
-  },
-  "browser": {
-    "fs": false,
-    "path": false,
-    "os": false,
-    "dns": false,
-    "net": false,
-    "tls": false,
-    "child_process": false
+    "lint": "next lint"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
     "@radix-ui/react-slot": "^1.1.2",
-    "@upstash/redis": "^1.28.3",
+    "@upstash/redis": "^1.34.7",
     "@vercel/kv": "^3.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dotenv": "^16.4.5",
     "eslint-config-prettier": "^10.1.1",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-tailwindcss": "^3.18.0",
