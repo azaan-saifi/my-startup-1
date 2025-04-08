@@ -339,13 +339,13 @@ const CourseDetailPage = () => {
           // Mock resources for demo
           resources: lesson.id === 'l1' 
             ? [
-                { title: 'Lesson Slides', type: 'pdf', url: '#' },
-                { title: 'Starter Code', type: 'code', url: '#' },
-                { title: 'Additional Resources', type: 'link', url: '#' }
+                { title: 'Lesson Slides', type: 'pdf' as const, url: '#' },
+                { title: 'Starter Code', type: 'code' as const, url: '#' },
+                { title: 'Additional Resources', type: 'link' as const, url: '#' }
               ]
             : lesson.id === 'l2'
             ? [
-                { title: 'Exercise Files', type: 'code', url: '#' }
+                { title: 'Exercise Files', type: 'code' as const, url: '#' }
               ]
             : undefined
         }))
