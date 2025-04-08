@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { use } from 'react';
 import Link from 'next/link';
 import { 
   FiArrowLeft, 
@@ -13,9 +13,9 @@ import {
   FiUser 
 } from 'react-icons/fi';
 
-export default function CourseDetailsPage({ params }: { params: { courseId: string } }) {
-  // Get courseId directly from params
-  const courseId = params.courseId;
+export default function CourseDetailsPage({ params }: { params: Promise<{ courseId: string }> }) {
+  // Use React.use to unwrap the promise
+  const { courseId } = use(params);
   
   // Determine if this is one of our known courses (for demo purposes)
   const isWebDev = courseId === 'course-1';
