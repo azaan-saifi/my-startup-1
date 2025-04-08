@@ -141,69 +141,23 @@ const PricingManagement = () => {
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isProduction, setIsProduction] = useState(false);
-  
-  // Check if we're in production environment
-  useEffect(() => {
-    // In the browser, window.location.hostname will indicate if we're on localhost or a production domain
-    const hostname = window.location.hostname;
-    setIsProduction(hostname !== 'localhost' && hostname !== '127.0.0.1');
-  }, []);
   
   // Fetch pricing plans from the API
   useEffect(() => {
     const fetchPricingPlans = async () => {
       try {
         setIsLoading(true);
-        console.log('Fetching pricing plans...');
         const response = await fetch('/api/pricing');
         
         if (!response.ok) {
-          console.error('API response not OK:', response.status, response.statusText);
-          throw new Error(`Failed to fetch pricing plans: ${response.status}`);
+          throw new Error('Failed to fetch pricing plans');
         }
         
         const data = await response.json();
-        console.log('Fetched pricing plans:', data);
         setPlans(data);
       } catch (error) {
         console.error('Error fetching pricing plans:', error);
         toast.error('Failed to load pricing plans');
-        // Set some default plans for UI display
-        setPlans([
-          {
-            id: "1",
-            name: "Basic Bender",
-            price: 29,
-            interval: "monthly",
-            description: "Perfect for beginners looking to start their coding journey.",
-            features: [
-              "Access to core courses",
-              "Practice exercises",
-              "Community forum access",
-              "Monthly coding challenges",
-              "Email support"
-            ],
-            isPopular: false,
-          },
-          {
-            id: "2",
-            name: "Master Bender",
-            price: 89,
-            interval: "monthly",
-            description: "For serious learners ready to master the code of the Matrix.",
-            features: [
-              "All Basic features",
-              "Advanced courses",
-              "1-on-1 mentoring sessions",
-              "Project reviews",
-              "Priority support",
-              "Certificate of completion",
-              "Job opportunity alerts"
-            ],
-            isPopular: true,
-          }
-        ]);
       } finally {
         setIsLoading(false);
       }
@@ -230,7 +184,6 @@ const PricingManagement = () => {
   const handlePublish = async () => {
     try {
       setIsSaving(true);
-      console.log('Publishing pricing plans:', plans);
       
       const response = await fetch('/api/pricing', {
         method: 'POST',
@@ -241,21 +194,10 @@ const PricingManagement = () => {
       });
       
       if (!response.ok) {
-        console.error('API response not OK:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error response body:', errorText);
-        throw new Error(`Failed to update pricing plans: ${response.status}`);
+        throw new Error('Failed to update pricing plans');
       }
       
-      const result = await response.json();
-      console.log('API response:', result);
-      
-      // Check if we're in production and show a special message
-      if (result.message && result.message.includes("won't persist in production")) {
-        toast.success('Pricing plans updated in UI (changes will not persist in production without a database)');
-      } else {
-        toast.success('Pricing plans published successfully!');
-      }
+      toast.success('Pricing plans published successfully!');
     } catch (error) {
       console.error('Error publishing pricing plans:', error);
       toast.error('Failed to publish pricing plans');
@@ -277,16 +219,6 @@ const PricingManagement = () => {
   return (
     <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-      
-      {isProduction && (
-        <div className="mb-6 p-4 rounded-lg border border-[#f0bb1c]/30 bg-[#ffc20b10]">
-          <h4 className="text-[#f0bb1c] font-medium">Production Environment Notice</h4>
-          <p className="mt-1 text-sm text-zinc-300">
-            You are currently in the production environment. Changes made to pricing plans will update the UI temporarily but won't be permanently saved. 
-            For persistent changes in production, a database integration is required.
-          </p>
-        </div>
-      )}
       
       <div className="mb-6 flex items-center justify-between">
         <div>

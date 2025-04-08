@@ -1,102 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { redis, getPricingPlans, setPricingPlans } from "@/lib/redis";
 
 const dataFilePath = path.join(process.cwd(), "data/pricing.json");
 
-// Ensure data directory exists
-const ensureDataDir = () => {
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+// Default pricing data
+const defaultPricingPlans = [
+  {
+    id: "1",
+    name: "Basic Bender",
+    price: 29,
+    interval: "monthly",
+    description: "Perfect for beginners looking to start their coding journey.",
+    features: [
+      "Access to core courses",
+      "Practice exercises",
+      "Community forum access",
+      "Monthly coding challenges",
+      "Email support"
+    ],
+    isPopular: false,
+  },
+  {
+    id: "2",
+    name: "Master Bender",
+    price: 89,
+    interval: "monthly",
+    description: "For serious learners ready to master the code of the Matrix.",
+    features: [
+      "All Basic features",
+      "Advanced courses",
+      "1-on-1 mentoring sessions",
+      "Project reviews",
+      "Priority support",
+      "Certificate of completion",
+      "Job opportunity alerts"
+    ],
+    isPopular: true,
   }
-};
-
-// Get default pricing data
-const getDefaultPricingData = () => {
-  return [
-    {
-      id: "1",
-      name: "Basic Bender",
-      price: 29,
-      interval: "monthly",
-      description: "Perfect for beginners looking to start their coding journey.",
-      features: [
-        "Access to core courses",
-        "Practice exercises",
-        "Community forum access",
-        "Monthly coding challenges",
-        "Email support"
-      ],
-      isPopular: false,
-    },
-    {
-      id: "2",
-      name: "Master Bender",
-      price: 89,
-      interval: "monthly",
-      description: "For serious learners ready to master the code of the Matrix.",
-      features: [
-        "All Basic features",
-        "Advanced courses",
-        "1-on-1 mentoring sessions",
-        "Project reviews",
-        "Priority support",
-        "Certificate of completion",
-        "Job opportunity alerts"
-      ],
-      isPopular: true,
-    }
-  ];
-};
-
-// Initialize with default pricing data if file doesn't exist
-const initializeDataFile = () => {
-  // In production (Vercel), we can't write to the filesystem
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
-  
-  ensureDataDir();
-  
-  if (!fs.existsSync(dataFilePath)) {
-    fs.writeFileSync(dataFilePath, JSON.stringify(getDefaultPricingData(), null, 2));
-  }
-};
-
-// Read pricing data
-const readPricingData = () => {
-  try {
-    if (process.env.NODE_ENV === 'production') {
-      // In production, use the embedded default data or fetch from a database
-      // For now, returning default data
-      // In a real application, this would be replaced with a database call
-      return getDefaultPricingData();
-    } else {
-      // In development, use the local file
-      if (fs.existsSync(dataFilePath)) {
-        const data = fs.readFileSync(dataFilePath, "utf8");
-        return JSON.parse(data);
-      } else {
-        return getDefaultPricingData();
-      }
-    }
-  } catch (error) {
-    console.error("Error reading pricing data:", error);
-    return getDefaultPricingData();
-  }
-};
+];
 
 // GET /api/pricing - Get all pricing plans
 export async function GET() {
   try {
-    initializeDataFile();
+    // Try to get pricing plans from Redis
+    let plans = await getPricingPlans();
     
-    const plans = readPricingData();
+    // If no data in Redis, try to read from file as fallback
+    if (!plans) {
+      try {
+        if (fs.existsSync(dataFilePath)) {
+          const data = fs.readFileSync(dataFilePath, "utf8");
+          plans = JSON.parse(data);
+          
+          // Store in Redis for future use
+          await setPricingPlans(plans);
+        } else {
+          // Use default plans if no file exists
+          plans = defaultPricingPlans;
+          
+          // Store default plans in Redis
+          await setPricingPlans(plans);
+        }
+      } catch (fileError) {
+        console.error("Error reading from file, using defaults:", fileError);
+        plans = defaultPricingPlans;
+        await setPricingPlans(plans);
+      }
+    }
     
     return NextResponse.json(plans);
   } catch (error) {
-    console.error("Error reading pricing data:", error);
+    console.error("Error fetching pricing data:", error);
     return NextResponse.json(
       { error: "Failed to fetch pricing plans" },
       { status: 500 }
@@ -117,22 +93,29 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // In production, we can't write to the filesystem
-    if (process.env.NODE_ENV === 'production') {
-      // In a real application, this would write to a database
-      // For now, just simulate success
-      console.log('Production environment detected - would save:', plans);
-      return NextResponse.json({ 
-        success: true, 
-        message: "Pricing plans updated successfully (note: changes won't persist in production without a database)" 
-      });
+    // Store in Redis
+    const success = await setPricingPlans(plans);
+    
+    if (!success) {
+      throw new Error("Failed to save pricing plans to Redis");
     }
     
-    // In development, write to the local file
-    ensureDataDir();
-    fs.writeFileSync(dataFilePath, JSON.stringify(plans, null, 2));
+    // Also update the file as backup
+    try {
+      const dataDir = path.join(process.cwd(), "data");
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(dataFilePath, JSON.stringify(plans, null, 2));
+    } catch (fileError) {
+      console.error("Warning: Could not write to backup file:", fileError);
+      // Continue even if file write fails, as Redis is our primary storage
+    }
     
-    return NextResponse.json({ success: true, message: "Pricing plans updated successfully" });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Pricing plans updated successfully" 
+    });
   } catch (error) {
     console.error("Error updating pricing data:", error);
     return NextResponse.json(
