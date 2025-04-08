@@ -48,12 +48,12 @@ const EditablePricingPlan = ({ plan, onSave, onCancel }: EditablePricingPlanProp
   };
   
   return (
-    <div className="space-y-4 rounded-lg border border-[#f0bb1c]/30 bg-black/80 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="space-y-4 rounded-lg border border-[#f0bb1c]/30 bg-black/80 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
-            className="rounded border border-zinc-800 bg-zinc-900/50 px-2 py-1 text-lg font-medium text-white focus:border-[#f0bb1c] focus:outline-none"
+            className="w-full sm:w-auto rounded border border-zinc-800 bg-zinc-900/50 px-2 py-1 text-lg font-medium text-white focus:border-[#f0bb1c] focus:outline-none"
             value={editedPlan.name}
             onChange={(e) => handleChange("name", e.target.value)}
           />
@@ -68,7 +68,7 @@ const EditablePricingPlan = ({ plan, onSave, onCancel }: EditablePricingPlanProp
             <label htmlFor="isPopular" className="text-zinc-400">Popular</label>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-2 sm:mt-0">
           <button 
             onClick={() => onSave(editedPlan)}
             className="rounded p-1 text-emerald-500 hover:bg-zinc-800"
@@ -208,7 +208,7 @@ const PricingManagement = () => {
   
   if (isLoading) {
     return (
-      <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm">
+      <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-4 sm:p-6 backdrop-blur-sm">
         <div className="flex justify-center items-center h-40">
           <div className="animate-pulse text-zinc-400">Loading pricing plans...</div>
         </div>
@@ -217,10 +217,10 @@ const PricingManagement = () => {
   }
   
   return (
-    <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm">
+    <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-4 sm:p-6 backdrop-blur-sm">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
       
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-medium text-white">Pricing Management</h3>
           <p className="mt-1 text-sm text-zinc-400">Update pricing plans shown on the pricing page</p>
@@ -229,14 +229,14 @@ const PricingManagement = () => {
         <button 
           onClick={handlePublish}
           disabled={isSaving}
-          className="flex items-center gap-2 rounded-md bg-[#ffc20b31] px-4 py-2 text-sm font-medium text-[#f0bb1c] transition-colors hover:bg-[#ffc20b50] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 rounded-md bg-[#ffc20b31] px-4 py-2 text-sm font-medium text-[#f0bb1c] transition-colors hover:bg-[#ffc20b50] disabled:opacity-50 disabled:cursor-not-allowed mt-3 sm:mt-0"
         >
           <span>{isSaving ? 'Publishing...' : 'Publish Changes'}</span>
           <IoIosArrowRoundForward className="text-xl" />
         </button>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
         {plans.map((plan) => (
           <div key={plan.id}>
             {editingPlanId === plan.id ? (
@@ -246,10 +246,10 @@ const PricingManagement = () => {
                 onCancel={handleCancel}
               />
             ) : (
-              <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm transition-all duration-300 hover:border-zinc-700 hover:shadow-lg">
+              <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-4 sm:p-6 backdrop-blur-sm transition-all duration-300 hover:border-zinc-700 hover:shadow-lg">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
                 
-                <div className="mb-2 flex items-center justify-between">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-lg font-medium text-white">{plan.name}</h4>
                   <div className="flex items-center gap-2">
                     {plan.isPopular && (

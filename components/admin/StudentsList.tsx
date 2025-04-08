@@ -76,6 +76,70 @@ interface Student {
   avatar: string;
 }
 
+// Mobile student card component
+const StudentCard = ({ student }: { student: Student }) => {
+  return (
+    <div className="mb-4 rounded-lg border border-zinc-800 bg-black/40 p-4">
+      <div className="mb-3 flex items-center">
+        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-zinc-800">
+          <div className="h-full w-full rounded-full bg-gradient-to-br from-[#4cc9f0] to-[#f72585]"></div>
+        </div>
+        <div className="ml-3">
+          <p className="text-sm font-medium text-white">{student.name}</p>
+          <p className="text-xs text-zinc-400">{student.email}</p>
+        </div>
+        <span
+          className={`ml-auto inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+            student.status === "active"
+              ? "bg-emerald-900/30 text-emerald-500"
+              : "bg-rose-900/30 text-rose-500"
+          }`}
+        >
+          {student.status === "active" ? "Active" : "Inactive"}
+        </span>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-y-3 mb-3">
+        <div>
+          <p className="text-xs text-zinc-500">Courses</p>
+          <p className="text-sm text-zinc-300">{student.enrolledCourses}</p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500">Last Active</p>
+          <p className="text-sm text-zinc-300">{student.lastActive}</p>
+        </div>
+        <div className="col-span-2">
+          <p className="text-xs text-zinc-500">Progress</p>
+          <div className="mt-1 flex items-center">
+            <div className="mr-2 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div 
+                className="h-full rounded-full" 
+                style={{ 
+                  width: `${student.progress}%`,
+                  backgroundColor: student.progress > 75 ? '#10b981' : student.progress > 50 ? '#f0bb1c' : student.progress > 25 ? '#fb923c' : '#ef4444'
+                }}
+              ></div>
+            </div>
+            <span className="text-zinc-400 text-xs">{student.progress}%</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-end gap-2 border-t border-zinc-800 pt-3">
+        <button className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-[#4cc9f0]" title="View Profile">
+          <FiEye size={16} />
+        </button>
+        <button className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-[#4cc9f0]" title="Send Message">
+          <FiMessageCircle size={16} />
+        </button>
+        <button className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-[#4cc9f0]" title="Send Email">
+          <FiMail size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const StudentsList = () => {
   const [students, setStudents] = useState<Student[]>(initialStudents);
   const [searchTerm, setSearchTerm] = useState("");
@@ -96,7 +160,7 @@ const StudentsList = () => {
   );
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm">
+    <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-4 sm:p-6 backdrop-blur-sm">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
       
       <div className="mb-6 flex items-center justify-between">
@@ -129,7 +193,15 @@ const StudentsList = () => {
         </select>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile View - Card Layout */}
+      <div className="md:hidden">
+        {filteredStudents.map((student) => (
+          <StudentCard key={student.id} student={student} />
+        ))}
+      </div>
+
+      {/* Desktop View - Table Layout */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-full border-collapse">
           <thead>
             <tr className="border-b border-zinc-800 text-left">

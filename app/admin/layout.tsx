@@ -20,17 +20,17 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <div className="flex h-screen bg-black">
+    <div className="flex min-h-screen bg-black">
       <ScrollRestoration />
       
       <SidebarWithLogout />
       
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 w-full overflow-y-auto">
         <div className="absolute inset-0 bg-gradient-radial from-black via-yellow-500/5 to-transparent opacity-60 -z-10"></div>
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-yellow-500/10 to-transparent -z-10"></div>
         
         <PageTransition>
-          <main className="p-6">
+          <main className="p-3 md:p-6 mt-16 md:mt-0 pb-20 md:pb-6 max-w-full overflow-x-hidden">
             {children}
           </main>
         </PageTransition>

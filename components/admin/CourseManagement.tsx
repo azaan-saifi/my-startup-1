@@ -54,6 +54,60 @@ interface Course {
   isActive: boolean;
 }
 
+// Mobile course card component
+const CourseCard = ({ course, onStatusToggle, onDelete }: { 
+  course: Course, 
+  onStatusToggle: (id: string) => void, 
+  onDelete: (id: string) => void 
+}) => {
+  return (
+    <div className="mb-4 rounded-lg border border-zinc-800 bg-black/40 p-4">
+      <div className="mb-3 flex items-start justify-between">
+        <h4 className="text-md font-medium text-white">{course.title}</h4>
+        <div className="flex gap-1">
+          <button className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white">
+            <FiEdit2 size={16} />
+          </button>
+          <button 
+            className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-rose-500"
+            onClick={() => onDelete(course.id)}
+          >
+            <FiTrash2 size={16} />
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div>
+          <p className="text-xs text-zinc-500">Category</p>
+          <p className="text-sm text-zinc-300">{course.category}</p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500">Price</p>
+          <p className="text-sm text-zinc-300">${course.price.toFixed(2)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500">Students</p>
+          <p className="text-sm text-zinc-300">{course.students}</p>
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500">Status</p>
+          <button
+            onClick={() => onStatusToggle(course.id)}
+            className={`mt-1 rounded-full px-3 py-1 text-xs font-medium ${
+              course.isActive
+                ? "bg-emerald-900/30 text-emerald-500"
+                : "bg-rose-900/30 text-rose-500"
+            }`}
+          >
+            {course.isActive ? "Active" : "Inactive"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CourseManagement = () => {
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [searchTerm, setSearchTerm] = useState("");
@@ -79,16 +133,16 @@ const CourseManagement = () => {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-6 backdrop-blur-sm">
+    <div className="relative overflow-hidden rounded-lg border border-zinc-800 bg-black/60 p-4 sm:p-6 backdrop-blur-sm">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
       
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-xl font-medium text-white">Course Management</h3>
           <p className="mt-1 text-sm text-zinc-400">Manage your course catalog</p>
         </div>
         
-        <button className="flex items-center gap-2 rounded-md bg-[#ffc20b31] px-4 py-2 text-sm font-medium text-[#f0bb1c] transition-colors hover:bg-[#ffc20b50]">
+        <button className="flex items-center justify-center gap-2 rounded-md bg-[#ffc20b31] px-4 py-2 text-sm font-medium text-[#f0bb1c] transition-colors hover:bg-[#ffc20b50]">
           <FiPlus />
           <span>Add Course</span>
         </button>
@@ -104,7 +158,20 @@ const CourseManagement = () => {
         />
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile View - Card Layout */}
+      <div className="md:hidden">
+        {filteredCourses.map((course) => (
+          <CourseCard 
+            key={course.id} 
+            course={course} 
+            onStatusToggle={handleStatusToggle} 
+            onDelete={handleDelete} 
+          />
+        ))}
+      </div>
+
+      {/* Desktop View - Table Layout */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-full border-collapse">
           <thead>
             <tr className="border-b border-zinc-800 text-left">
