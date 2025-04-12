@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { cn } from "@/lib/utils";
-import CourseCard from "./CourseCard";
 import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
+
+import { cn } from "@/lib/utils";
+
+import CourseCard from "./CourseCard";
 
 interface Course {
   id: string;
@@ -52,7 +54,7 @@ const CourseCarousel = ({ courses, className }: CourseCarouselProps) => {
             style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           >
             {courses.map((course) => (
-              <div key={course.id} className="w-full flex-shrink-0 px-2">
+              <div key={course.id} className="w-full shrink-0 px-2">
                 <CourseCard
                   title={course.title}
                   description={course.description}
@@ -70,14 +72,14 @@ const CourseCarousel = ({ courses, className }: CourseCarouselProps) => {
               className="rounded-full bg-zinc-800 p-2 text-white hover:bg-zinc-700"
               aria-label="Previous course"
             >
-              <IoIosArrowRoundBack className="h-6 w-6" />
+              <IoIosArrowRoundBack className="size-6" />
             </button>
             <button
               onClick={handleNext}
               className="rounded-full bg-zinc-800 p-2 text-white hover:bg-zinc-700"
               aria-label="Next course"
             >
-              <IoIosArrowRoundForward className="h-6 w-6" />
+              <IoIosArrowRoundForward className="size-6" />
             </button>
           </div>
         )}

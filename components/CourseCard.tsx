@@ -1,6 +1,7 @@
-import React from "react";
-import { cn } from "@/lib/utils";
 import Image from "next/image";
+import React from "react";
+
+import { cn } from "@/lib/utils";
 
 interface CourseCardProps {
   title: string;
@@ -22,7 +23,7 @@ const CourseCard = ({
         className
       )}
     >
-      <div className="relative aspect-video w-full overflow-hidden rounded-lg mb-6">
+      <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-lg">
         {imageUrl ? (
           <Image src={imageUrl} alt={title} fill className="object-cover" />
         ) : (
@@ -31,10 +32,10 @@ const CourseCard = ({
         <div className="absolute inset-0 bg-gradient-radial from-transparent to-black/60 opacity-80" />
       </div>
 
-      <h3 className="text-2xl font-medium tracking-tight line-clamp-2 text-white mb-2">
+      <h3 className="mb-2 line-clamp-2 text-2xl font-medium tracking-tight text-white">
         {title}
       </h3>
-      <p className="text-base text-zinc-400 line-clamp-2">{description}</p>
+      <p className="line-clamp-2 text-base text-zinc-400">{description}</p>
     </div>
   );
 };

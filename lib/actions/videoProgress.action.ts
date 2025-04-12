@@ -1,0 +1,218 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import Course from "@/lib/database/models/courses.model";
+import Video from "@/lib/database/models/video.model";
+import VideoProgress from "@/lib/database/models/videoProgress.model";
+
+import { connectToDatabase } from "../database/mongoose";
+
+export async function updateVideoProgress(
+  videoId: string,
+  courseId: string,
+  watchedPercent: number,
+  userId: string,
+  playbackPositionSeconds?: number
+) {
+  try {
+    await connectToDatabase();
+
+    if (!userId) throw new Error("Unauthorized");
+
+    // Debug log
+    console.log("Updating progress with values:", {
+      videoId,
+      courseId,
+      watchedPercent,
+      userId,
+      playbackPositionSeconds,
+    });
+
+    // Mark as completed if watched more than 90%
+    const completed = watchedPercent >= 90;
+
+    // Try a different update approach: first find, then update
+    let progressRecord = await VideoProgress.findOne({ userId, videoId });
+
+    if (progressRecord) {
+      // Update existing record
+      console.log("Found existing record:", progressRecord);
+      progressRecord.watchedPercent = watchedPercent;
+      progressRecord.completed = completed;
+      progressRecord.lastWatchedAt = new Date();
+
+      // Explicitly set playback position
+      if (typeof playbackPositionSeconds === "number") {
+        progressRecord.playbackPositionSeconds = playbackPositionSeconds;
+        console.log(
+          "Setting playbackPositionSeconds to:",
+          playbackPositionSeconds
+        );
+      }
+
+      await progressRecord.save();
+      console.log("Updated existing record:", progressRecord);
+    } else {
+      // Create new record
+      console.log("Creating new record");
+      progressRecord = new VideoProgress({
+        userId,
+        videoId,
+        courseId,
+        watchedPercent,
+        completed,
+        playbackPositionSeconds:
+          typeof playbackPositionSeconds === "number"
+            ? playbackPositionSeconds
+            : 0,
+        lastWatchedAt: new Date(),
+      });
+
+      await progressRecord.save();
+      console.log("Created new record:", progressRecord);
+    }
+
+    // If video is completed, unlock the next video in the sequence
+    if (completed) {
+      // Get the current video to find its position
+      const currentVideo = await Video.findById(videoId);
+      if (currentVideo) {
+        const nextPosition = currentVideo.position + 1;
+
+        // Find the next video in the sequence
+        const nextVideo = await Video.findOne({
+          courseId,
+          position: nextPosition,
+        });
+
+        // If there is a next video, unlock it
+        if (nextVideo && nextVideo.locked) {
+          await Video.findByIdAndUpdate(nextVideo._id, { locked: false });
+        }
+      }
+
+      // Update the course progress
+      await updateCourseProgress(courseId, userId);
+    }
+
+    revalidatePath(`/student/courses/[id]`);
+    return { success: true, completed };
+  } catch (error) {
+    console.error("Error updating video progress:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+// Helper function to update course progress
+async function updateCourseProgress(courseId: string, userId: string) {
+  try {
+    // Get total videos for this course
+    const totalVideos = await Video.countDocuments({ courseId });
+
+    // Get completed videos
+    const completedVideos = await VideoProgress.countDocuments({
+      userId,
+      courseId,
+      completed: true,
+    });
+
+    // Calculate progress percentage
+    const progressPercentage =
+      totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
+
+    // Update the course with progress data
+    await Course.findByIdAndUpdate(courseId, {
+      progress: progressPercentage,
+      completedLessons: completedVideos,
+      totalLessons: totalVideos,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating course progress:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function getVideoProgress(videoId: string, userId: string) {
+  try {
+    await connectToDatabase();
+
+    if (!userId) return null;
+
+    const progress = await VideoProgress.findOne({
+      userId,
+      videoId,
+    });
+
+    return progress ? JSON.stringify(progress) : null;
+  } catch (error) {
+    console.error("Error getting video progress:", error);
+    return null;
+  }
+}
+
+export async function getCourseProgress(courseId: string, userId: string) {
+  try {
+    await connectToDatabase();
+
+    if (!userId) return null;
+
+    // Get all progress records for this course and user
+    const progressRecords = await VideoProgress.find({
+      userId,
+      courseId,
+    });
+
+    // Get course data with progress info
+    const course = await Course.findById(courseId);
+
+    return JSON.stringify({
+      progressRecords,
+      courseProgress: {
+        progress: course?.progress || 0,
+        completedLessons: course?.completedLessons || 0,
+        totalLessons: course?.totalLessons || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error getting course progress:", error);
+    return null;
+  }
+}
+
+export async function migrateVideoProgressRecords() {
+  try {
+    await connectToDatabase();
+
+    // Find all progress records
+    const allRecords = await VideoProgress.find({});
+
+    // Add playbackPositionSeconds to any that don't have it
+    const updates = allRecords.map(async (record) => {
+      if (record.playbackPositionSeconds === undefined) {
+        // Estimate position based on watchedPercent
+        const estimatedDuration = 600; // 10 minutes in seconds
+        const estimatedPosition = Math.floor(
+          (record.watchedPercent / 100) * estimatedDuration
+        );
+
+        return VideoProgress.findByIdAndUpdate(record._id, {
+          playbackPositionSeconds: estimatedPosition,
+        });
+      }
+      return null;
+    });
+
+    await Promise.all(updates.filter(Boolean));
+
+    return {
+      success: true,
+      message: `Updated ${updates.filter(Boolean).length} records`,
+    };
+  } catch (error) {
+    console.error("Error migrating video progress records:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}

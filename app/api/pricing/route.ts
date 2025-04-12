@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+
+import { NextRequest, NextResponse } from "next/server";
 
 const dataFilePath = path.join(process.cwd(), "data/pricing.json");
 
@@ -15,7 +16,7 @@ const ensureDataDir = () => {
 // Initialize with default pricing data if file doesn't exist
 const initializeDataFile = () => {
   ensureDataDir();
-  
+
   if (!fs.existsSync(dataFilePath)) {
     const defaultPricingPlans = [
       {
@@ -23,13 +24,14 @@ const initializeDataFile = () => {
         name: "Basic Bender",
         price: 29,
         interval: "monthly",
-        description: "Perfect for beginners looking to start their coding journey.",
+        description:
+          "Perfect for beginners looking to start their coding journey.",
         features: [
           "Access to core courses",
           "Practice exercises",
           "Community forum access",
           "Monthly coding challenges",
-          "Email support"
+          "Email support",
         ],
         isPopular: false,
       },
@@ -38,7 +40,8 @@ const initializeDataFile = () => {
         name: "Master Bender",
         price: 89,
         interval: "monthly",
-        description: "For serious learners ready to master the code of the Matrix.",
+        description:
+          "For serious learners ready to master the code of the Matrix.",
         features: [
           "All Basic features",
           "Advanced courses",
@@ -46,13 +49,16 @@ const initializeDataFile = () => {
           "Project reviews",
           "Priority support",
           "Certificate of completion",
-          "Job opportunity alerts"
+          "Job opportunity alerts",
         ],
         isPopular: true,
-      }
+      },
     ];
-    
-    fs.writeFileSync(dataFilePath, JSON.stringify(defaultPricingPlans, null, 2));
+
+    fs.writeFileSync(
+      dataFilePath,
+      JSON.stringify(defaultPricingPlans, null, 2)
+    );
   }
 };
 
@@ -60,10 +66,10 @@ const initializeDataFile = () => {
 export async function GET() {
   try {
     initializeDataFile();
-    
+
     const data = fs.readFileSync(dataFilePath, "utf8");
     const plans = JSON.parse(data);
-    
+
     return NextResponse.json(plans);
   } catch (error) {
     console.error("Error reading pricing data:", error);
@@ -78,9 +84,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     ensureDataDir();
-    
+
     const plans = await request.json();
-    
+
     // Validate the data
     if (!Array.isArray(plans)) {
       return NextResponse.json(
@@ -88,11 +94,14 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Write the updated plans to the file
     fs.writeFileSync(dataFilePath, JSON.stringify(plans, null, 2));
-    
-    return NextResponse.json({ success: true, message: "Pricing plans updated successfully" });
+
+    return NextResponse.json({
+      success: true,
+      message: "Pricing plans updated successfully",
+    });
   } catch (error) {
     console.error("Error updating pricing data:", error);
     return NextResponse.json(
@@ -100,4 +109,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

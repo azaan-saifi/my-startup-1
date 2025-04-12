@@ -1,80 +1,86 @@
 "use client";
 
-import React from "react";
-import { IoIosArrowRoundForward } from "react-icons/io";
-import Link from "next/link";
 import { motion } from "framer-motion";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { IoIosArrowRoundForward } from "react-icons/io";
 
+import CourseCarousel from "@/components/CourseCarousel";
 import { AnimatedShinyText } from "@/components/magicui/animated-shiny-text";
 import { ShinyButton } from "@/components/magicui/shiny-button";
-import CourseCarousel from "@/components/CourseCarousel";
 import Navbar from "@/components/Navbar";
+import { getTopThreeCourses } from "@/lib/actions/course.action";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 10 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: {
       duration: 0.5,
-      ease: [0.22, 1, 0.36, 1]
-    }
-  }
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
 };
 
-const courses = [
-  {
-    id: "1",
-    title: "A Halal Roadmap To $10,000/Month for Muslim Developers (2025)",
-    description:
-      "If you are a dev wanting to make an extra $3-10k/mo selling AI implementations, go here: https://www.lastcodebender.com/incubator?vid=3eu4IZOCzIw",
-    imageUrl: "/course1.jpg", // Add images or use placeholders
-  },
-  {
-    id: "2",
-    title: "I Taught 6 Beginners To Build an AI Project (with no experience)",
-    description:
-      "🔑 Get my FREE 'Noob to AI Developer' roadmap: https://lastcodebender.com/ai-developer",
-    imageUrl: "/course2.jpg",
-  },
-  {
-    id: "3",
-    title: "I am starting the Last Codebender Nation",
-    description: `code·bend·er: [Definition] 
-Unique individual who has unlocked the ability to read the code of the Matrix, and shape it at will.
-He is not just some programmer with no purpose.
-He has a holistic view of every situation.
-This makes him a feared opponent for all the agents of the Matrix.
-Because the Codebender is not a slave to the system,
-He only uses his ability for the sake of mankind.`,
-    imageUrl: "/course3.jpg",
-  },
-];
+interface Course {
+  _id: string;
+  title: string;
+  thumbnail: string;
+  lessons: string;
+  enrolled: boolean;
+}
 
-const page = () => {
+const Page = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [courses, setCourses] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchTopCourses = async () => {
+      try {
+        const coursesData = await getTopThreeCourses();
+        const parsedCourses = JSON.parse(coursesData);
+
+        // Transform the data to match the CourseCarousel component's expected format
+        const formattedCourses = parsedCourses.map((course: Course) => ({
+          id: course._id,
+          title: course.title,
+          description: `${course.lessons} lectures`,
+          imageUrl: course.thumbnail,
+        }));
+
+        setCourses(formattedCourses);
+      } catch (error) {
+        console.error("Error fetching top courses:", error);
+      }
+    };
+
+    fetchTopCourses();
+  }, []);
+
   return (
     <>
       <Navbar />
       <section className="flex-center flex-col">
         <div className="container">
-          <motion.div 
+          <motion.div
             className="z-10 flex min-h-14 items-center justify-center"
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
           >
             <div className="flex-center h-7 rounded-full border border-zinc-700 bg-zinc-800 text-[12px] transition-all ease-in">
-              <AnimatedShinyText className="inline-flex gap-2 items-center justify-center px-2 py-1 text-zinc-400 transition ease-out">
-                <div className="w-3 h-3 rounded-full flex-center bg-[#ffc20b31] ">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#f0bb1c8c]"></div>
+              <AnimatedShinyText className="inline-flex items-center justify-center gap-2 px-2 py-1 text-zinc-400 transition ease-out">
+                <div className="flex-center size-3 rounded-full bg-[#ffc20b31] ">
+                  <div className="size-1.5 rounded-full bg-[#f0bb1c8c]"></div>
                 </div>
                 <span>Interactive learning platform</span>
               </AnimatedShinyText>
             </div>
           </motion.div>
 
-          <motion.h1 
-            className="text-center bg-gradient-to-br from-white from-30% to-white/40 bg-clip-text py-6 font-medium leading-none tracking-tighter text-transparent text-balance text-3xl md:text-5xl"
+          <motion.h1
+            className="text-balance bg-gradient-to-br from-white from-30% to-white/40 bg-clip-text py-6 text-center text-3xl font-medium leading-none tracking-tighter text-transparent md:text-5xl"
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
@@ -84,9 +90,9 @@ const page = () => {
             practice-oriented
             <br className="block" /> learning journey
           </motion.h1>
-          
-          <motion.div 
-            className="w-full flex-center sm:mt-9 mt-2 mb-16"
+
+          <motion.div
+            className="flex-center mb-16 mt-2 w-full sm:mt-9"
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
@@ -99,7 +105,7 @@ const page = () => {
             </Link>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="py-8 max-sm:py-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -113,4 +119,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;
