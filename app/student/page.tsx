@@ -96,11 +96,14 @@ const StudentPage = () => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        // Check if we need to update courses (every 24 hours)
+        // Check if we need to update courses (every 30 days)
         const lastUpdate = await getLastCourseUpdate();
         const now = new Date().getTime();
 
-        if (!lastUpdate || now - parseInt(lastUpdate) > 24 * 60 * 60 * 1000) {
+        if (
+          !lastUpdate ||
+          now - parseInt(lastUpdate) > 30 * 24 * 60 * 60 * 1000
+        ) {
           await getYoutubePlaylistsByChannelId();
           await updateLastCourseUpdate();
         }
