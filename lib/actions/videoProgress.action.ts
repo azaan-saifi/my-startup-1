@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { updateEnrollmentCompletion } from "@/lib/actions/userEnrollment.action";
 import Course from "@/lib/database/models/courses.model";
 import Video from "@/lib/database/models/video.model";
 import VideoProgress from "@/lib/database/models/videoProgress.model";
@@ -121,12 +122,15 @@ async function updateCourseProgress(courseId: string, userId: string) {
     const progressPercentage =
       totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
 
-    // Update the course with progress data
-    await Course.findByIdAndUpdate(courseId, {
-      progress: progressPercentage,
-      completedLessons: completedVideos,
-      totalLessons: totalVideos,
-    });
+    // Update only the user's enrollment completion percentage
+    // Remove the direct course update which affects all users
+    await updateEnrollmentCompletion(
+      userId,
+      courseId,
+      progressPercentage,
+      completedVideos,
+      totalVideos
+    );
 
     return { success: true };
   } catch (error) {
@@ -165,15 +169,31 @@ export async function getCourseProgress(courseId: string, userId: string) {
       courseId,
     });
 
-    // Get course data with progress info
+    // Get user enrollment data for this course
+    const UserEnrollment = (
+      await import("@/lib/database/models/userEnrollment.model")
+    ).default;
+    const enrollment = await UserEnrollment.findOne({
+      userId,
+      courseId,
+      isActive: true,
+    });
+
+    // Get course for basic info
     const course = await Course.findById(courseId);
 
+    if (!course) {
+      return null;
+    }
+
+    // Return the progress data with user-specific enrollment data
     return JSON.stringify({
       progressRecords,
       courseProgress: {
-        progress: course?.progress || 0,
-        completedLessons: course?.completedLessons || 0,
-        totalLessons: course?.totalLessons || 0,
+        // Use user-specific enrollment data if available, otherwise fallback to zeros
+        progress: enrollment?.completionPercent || 0,
+        completedLessons: enrollment?.completedLessons || 0,
+        totalLessons: enrollment?.totalLessons || course.lessons || 0,
       },
     });
   } catch (error) {

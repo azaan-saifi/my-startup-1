@@ -1,36 +1,31 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import React from "react";
-import { AdminAuthProvider, useAdminAuth } from "@/contexts/AdminAuthContext";
-import AuthModal from "@/components/admin/AuthModal";
+
 import Sidebar from "@/components/admin/Sidebar";
 import PageTransition from "@/components/PageTransition";
 import ScrollRestoration from "@/components/ScrollRestoration";
 
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, logout } = useAdminAuth();
-  
-  if (!isAuthenticated) {
-    return <AuthModal />;
-  }
-  
-  // Add logout functionality to the Sidebar component via props
-  const SidebarWithLogout = () => {
-    return <Sidebar onLogout={logout} />;
+  const { signOut } = useAuth();
+
+  const handleLogout = () => {
+    signOut();
   };
 
   return (
     <div className="flex min-h-screen bg-black">
       <ScrollRestoration />
-      
-      <SidebarWithLogout />
-      
-      <div className="flex-1 w-full md:pl-64">
-        <div className="fixed inset-0 bg-gradient-radial from-black via-yellow-500/5 to-transparent opacity-60 -z-10"></div>
-        <div className="fixed inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-yellow-500/10 to-transparent -z-10"></div>
-        
+
+      <Sidebar onLogout={handleLogout} />
+
+      <div className="w-full flex-1 md:pl-64">
+        <div className="fixed inset-0 -z-10 bg-gradient-radial from-black via-yellow-gradient-from/5 to-transparent opacity-60"></div>
+        <div className="fixed inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-yellow-gradient-from/10 to-transparent"></div>
+
         <PageTransition>
-          <main className="p-3 md:p-6 mt-16 md:mt-0 pb-20 md:pb-6 max-w-full">
+          <main className="mt-16 max-w-full p-3 pb-20 md:mt-0 md:p-6">
             {children}
           </main>
         </PageTransition>
@@ -39,10 +34,10 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AdminAuthProvider>
-      <ProtectedLayout>{children}</ProtectedLayout>
-    </AdminAuthProvider>
-  );
-} 
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <ProtectedLayout>{children}</ProtectedLayout>;
+}

@@ -1,13 +1,15 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { FiBookOpen } from "react-icons/fi";
 
 import { Select } from "@/components/ui/select";
-import { getAllCourses } from "@/lib/actions/course.action";
+import { getEnrolledCoursesWithProgress } from "@/lib/actions/course.action";
 
 interface Course {
   _id: string;
@@ -15,6 +17,9 @@ interface Course {
   thumbnail: string;
   lessons: string;
   enrolled: boolean;
+  progress?: number;
+  completedLessons?: number;
+  totalLessons?: number;
 }
 
 // Animation variants
@@ -44,16 +49,46 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [sortBy, setSortBy] = useState("title");
   const [loading, setLoading] = useState(true);
+  const { userId } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const dbCourses = await getAllCourses();
+        if (!userId) {
+          router.push("/sign-in");
+          return;
+        }
+
+        // Get user-specific course data with progress
+        const dbCourses = await getEnrolledCoursesWithProgress(userId);
         const courseData = JSON.parse(dbCourses);
+
+        // Debug log to see what we're getting
+        console.log(
+          "All courses with enrollment status:",
+          courseData.map((c) => ({
+            id: c._id,
+            title: c.title,
+            enrolled: c.enrolled,
+            progress: c.progress,
+          }))
+        );
+
         // Only show enrolled courses
         const enrolledCourses = courseData.filter(
-          (course: Course) => course.enrolled
+          (course: Course) => course.enrolled === true
         );
+
+        console.log(
+          "Filtered enrolled courses:",
+          enrolledCourses.map((c) => ({
+            id: c._id,
+            title: c.title,
+            progress: c.progress,
+          }))
+        );
+
         setCourses(enrolledCourses);
       } catch (error) {
         console.error("Error fetching courses:", error);
@@ -63,7 +98,7 @@ const CoursesPage = () => {
     };
 
     fetchCourses();
-  }, []);
+  }, [userId, router]);
 
   const sortedCourses = [...courses].sort((a, b) => {
     if (sortBy === "title") {
@@ -162,6 +197,38 @@ const CoursesPage = () => {
                     <div className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
                       <FiBookOpen className="size-4" />
                       <span>{`${course.lessons.split(" ")[0]} lectures`}</span>
+                    </div>
+
+                    {/* Add progress indicator */}
+                    <div className="mt-4">
+                      <div className="h-1.5 w-full rounded-full bg-zinc-800">
+                        <div
+                          className="h-1.5 rounded-full bg-[#f0bb1c]"
+                          style={{
+                            width: `${
+                              course.progress !== undefined &&
+                              course.progress !== null
+                                ? course.progress
+                                : 0
+                            }%`,
+                          }}
+                        ></div>
+                      </div>
+                      <div className="mt-2 flex justify-between text-xs text-zinc-400">
+                        <span>{`${
+                          course.progress !== undefined &&
+                          course.progress !== null
+                            ? course.progress
+                            : 0
+                        }% complete`}</span>
+                        {course.completedLessons !== undefined &&
+                          course.totalLessons !== undefined && (
+                            <span>
+                              {course.completedLessons} / {course.totalLessons}{" "}
+                              lectures
+                            </span>
+                          )}
+                      </div>
                     </div>
                   </div>
 

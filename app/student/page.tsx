@@ -1,4 +1,5 @@
 "use client";
+import { useAuth } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,8 +8,8 @@ import React, { useEffect, useState } from "react";
 import { FiClock, FiBookOpen } from "react-icons/fi";
 
 import {
-  getAllCourses,
   updateEnrolledStatus,
+  getEnrolledCoursesWithProgress,
 } from "@/lib/actions/course.action";
 import {
   getLastCourseUpdate,
@@ -73,13 +74,14 @@ const StudentPage = () => {
   const quote = getRandomQuote();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { userId } = useAuth();
 
   const handleEnroll = async (courseId: string, enrolled: boolean) => {
     try {
       if (enrolled) {
         router.push(`/student/courses/${courseId}`);
       }
-      await updateEnrolledStatus(courseId);
+      await updateEnrolledStatus(courseId, userId as string);
 
       // Update the local state to reflect the enrollment
       setCourses((prevCourses) =>
@@ -95,6 +97,11 @@ const StudentPage = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
+        if (!userId) {
+          router.push("/sign-in");
+          return;
+        }
+
         setLoading(true);
         // Check if we need to update courses (every 30 days)
         const lastUpdate = await getLastCourseUpdate();
@@ -108,9 +115,22 @@ const StudentPage = () => {
           await updateLastCourseUpdate();
         }
 
-        // Fetch courses from database
-        const dbCourses = await getAllCourses();
+        // Fetch user-specific course data with progress
+        const dbCourses = await getEnrolledCoursesWithProgress(userId);
         const courseData = JSON.parse(dbCourses);
+
+        // Debug the course progress values
+        console.log(
+          "Courses fetched:",
+          courseData.map((c) => ({
+            id: c._id,
+            title: c.title,
+            enrolled: c.enrolled,
+            progress: c.progress,
+            completedLessons: c.completedLessons,
+            totalLessons: c.totalLessons,
+          }))
+        );
 
         setCourses(courseData);
       } catch (error) {
@@ -121,7 +141,7 @@ const StudentPage = () => {
     };
 
     fetchCourses();
-  }, []);
+  }, [userId, router]);
 
   const enrolledCourses = courses.filter((course) => course.enrolled);
 
@@ -301,14 +321,26 @@ const StudentPage = () => {
                         <div className="h-1.5 w-full rounded-full bg-zinc-800">
                           <div
                             className="h-1.5 rounded-full bg-[#f0bb1c]"
-                            style={{ width: `${course.progress || 0}%` }}
+                            style={{
+                              width: `${
+                                course.progress !== undefined &&
+                                course.progress !== null
+                                  ? course.progress
+                                  : 0
+                              }%`,
+                            }}
                           ></div>
                         </div>
 
                         <div className="mt-2 flex justify-between text-xs">
                           <div className="flex items-center text-zinc-400">
                             <FiClock className="mr-1 size-3" />
-                            <span>{`${course.progress || 0}% complete`}</span>
+                            <span>{`${
+                              course.progress !== undefined &&
+                              course.progress !== null
+                                ? course.progress
+                                : 0
+                            }% complete`}</span>
                           </div>
                           <div className="flex items-center text-zinc-400">
                             <FiBookOpen className="mr-1 size-3" />

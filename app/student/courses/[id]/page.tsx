@@ -1,20 +1,32 @@
 "use client";
-
+import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
-import { FiClock, FiMenu, FiLock, FiCheckCircle, FiSave } from "react-icons/fi";
+import {
+  FiClock,
+  FiMenu,
+  FiLock,
+  FiCheckCircle,
+  FiChevronRight,
+  FiX,
+} from "react-icons/fi";
 
+import BlurWrapper from "@/components/student/BlurWrapper";
+import CourseAiAssistant from "@/components/student/CourseAiAssistant";
+import CourseNotes from "@/components/student/CourseNotes";
+import CoursePracticeQuiz from "@/components/student/CoursePracticeQuiz";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { VideoListShimmer, VideoPlayerShimmer } from "@/components/ui/shimmer";
-import { useStudentAuth } from "@/contexts/StudentAuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCourseById } from "@/lib/actions/course.action";
 import {
   getNoteForVideo,
   saveNote,
   NoteData,
 } from "@/lib/actions/notes.action";
+import { isQuizCompleted } from "@/lib/actions/quizProgress.action";
 import {
   getCourseProgress,
   getVideoProgress,
@@ -22,21 +34,12 @@ import {
 } from "@/lib/actions/videoProgress.action";
 import { getVideosForCourse } from "@/lib/actions/youtube.action";
 
-// Import shimmer components
-
 // Import ReactPlayer dynamically to avoid SSR issues
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
-// Dynamically import the markdown editor to avoid SSR issues
-const MDEditor = dynamic(() => import("@uiw/react-md-editor"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-64 w-full animate-pulse rounded-md bg-zinc-800"></div>
-  ),
-});
-
 interface Video {
   _id: string;
+  videoId: string;
   title: string;
   thumbnail: string;
   duration: string;
@@ -65,10 +68,10 @@ interface Note {
   isPublic: boolean;
 }
 
-const CourseDetailPage = () => {
+const CourseContent = () => {
   const { id } = useParams();
-  const { isAuthenticated } = useStudentAuth();
-  const [userId, setUserId] = useState<string>("");
+  const { userId } = useAuth();
+  const router = useRouter();
   const [videos, setVideos] = useState<Video[]>([]);
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +81,7 @@ const CourseDetailPage = () => {
   const [completedVideos, setCompletedVideos] = useState<Set<string>>(
     new Set()
   );
+  const [quizCompletedForVideo, setQuizCompletedForVideo] = useState(false);
 
   // Enhanced note state
   const [noteContent, setNoteContent] = useState("");
@@ -87,13 +91,14 @@ const CourseDetailPage = () => {
 
   const playerRef = useRef<typeof ReactPlayer>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("notes");
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
-  // Add a ref to track last update time
+  // Add refs for scrolling
+  const notesRef = useRef<HTMLDivElement>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
-
-  // Add these new states
-  const [playerKey, setPlayerKey] = useState(0); // Used to force player remount
   const [initialStartPosition, setInitialStartPosition] = useState(0);
+  const [currentPlaybackPosition, setCurrentPlaybackPosition] = useState(0);
 
   // Setup window resize listener to detect mobile
   useEffect(() => {
@@ -106,19 +111,24 @@ const CourseDetailPage = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Set userId from localStorage
+  // Effect to automatically hide sidebar when AI Assistant or Practice Quiz is selected (on desktop)
   useEffect(() => {
-    if (typeof window !== "undefined" && isAuthenticated) {
-      // Using the email as userId for now
-      // In a real app, you would use a proper user ID
-      const email = localStorage.getItem("userEmail") || "student@example.com";
-      setUserId(email);
+    if (!isSmallScreen) {
+      if (activeTab === "assistant" || activeTab === "quiz") {
+        setSidebarOpen(false);
+        setRightSidebarOpen(true);
+      } else {
+        setRightSidebarOpen(false);
+      }
     }
-  }, [isAuthenticated]);
+  }, [activeTab, isSmallScreen]);
 
   // Fetch course data
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      router.push("/sign-in");
+      return;
+    }
 
     const fetchCourseData = async () => {
       try {
@@ -141,6 +151,8 @@ const CourseDetailPage = () => {
           const parsedData = JSON.parse(progressData);
           const completed = new Set<string>();
 
+          console.log("Course progress data:", parsedData); // Debug log for progress data
+
           if (
             parsedData.progressRecords &&
             Array.isArray(parsedData.progressRecords)
@@ -153,6 +165,11 @@ const CourseDetailPage = () => {
           }
 
           setCompletedVideos(completed);
+
+          // Add this to extract and set the overall course progress percentage
+          if (parsedData.courseProgress) {
+            setMaxCompletionPercent(parsedData.courseProgress.progress || 0);
+          }
         }
 
         // Select the first video
@@ -186,17 +203,20 @@ const CourseDetailPage = () => {
     // Reset player state whenever a new video is selected
     setPlayerReady(false);
 
-    // Increment key to force player to remount
-    setPlayerKey((prevKey) => prevKey + 1);
-
     setSelectedVideo(video);
+
+    console.log("Selected video:", video);
 
     // Load video progress
     if (userId) {
       const progressData = await getVideoProgress(video._id, userId);
+      console.log("Video progress data:", progressData); // Debug log for video progress
+
       if (progressData) {
         const progress = JSON.parse(progressData);
-        const percent = progress.watchedPercent;
+        console.log("Parsed progress:", progress);
+
+        const percent = progress.watchedPercent || 0;
         setMaxCompletionPercent(percent);
 
         // Use playback position from the database
@@ -206,6 +226,10 @@ const CourseDetailPage = () => {
         ) {
           // Store the position to be used when player mounts
           setInitialStartPosition(progress.playbackPositionSeconds);
+          console.log(
+            "Setting initial position from DB:",
+            progress.playbackPositionSeconds
+          );
         } else if (percent > 0 && percent < 95) {
           // Fallback to estimating position based on percentage if no position is saved
           const estimatedDuration = 600;
@@ -213,9 +237,11 @@ const CourseDetailPage = () => {
             (percent / 100) * estimatedDuration
           );
           setInitialStartPosition(startTimeSeconds);
+          console.log("Estimating position from percent:", startTimeSeconds);
         } else {
           // Reset for completed or new videos
           setInitialStartPosition(0);
+          console.log("Resetting position to 0");
         }
 
         // Load notes
@@ -231,6 +257,7 @@ const CourseDetailPage = () => {
       } else {
         setMaxCompletionPercent(0);
         setInitialStartPosition(0);
+        console.log("No progress data found, starting from beginning");
       }
     }
   };
@@ -247,6 +274,8 @@ const CourseDetailPage = () => {
         // Log values for debugging
         console.log("Sending progress update:", {
           videoId: selectedVideo._id,
+          courseId: id,
+          userId,
           percent: Math.max(percent, maxCompletionPercent),
           playedSeconds: Math.floor(playedSeconds),
         });
@@ -266,6 +295,7 @@ const CourseDetailPage = () => {
         if (result.completed && !completedVideos.has(selectedVideo._id)) {
           // Mark as completed
           setCompletedVideos((prev) => new Set([...prev, selectedVideo._id]));
+          console.log("Marked video as completed:", selectedVideo._id);
         }
 
         lastUpdateTimeRef.current = now;
@@ -299,6 +329,47 @@ const CourseDetailPage = () => {
     }
   };
 
+  // Find the current video index and next video
+  const currentVideoIndex = selectedVideo
+    ? videos.findIndex((v) => v._id === selectedVideo._id)
+    : 0;
+
+  const nextVideo =
+    currentVideoIndex < videos.length - 1
+      ? videos[currentVideoIndex + 1]
+      : null;
+
+  // Check if quiz is completed for current video when it changes
+  useEffect(() => {
+    const checkQuizCompletion = async () => {
+      if (!selectedVideo?.videoId || !userId) {
+        setQuizCompletedForVideo(false);
+        return;
+      }
+
+      try {
+        const completed = await isQuizCompleted(selectedVideo.videoId, userId);
+        setQuizCompletedForVideo(completed);
+      } catch (error) {
+        console.error("Error checking quiz completion:", error);
+        setQuizCompletedForVideo(false);
+      }
+    };
+
+    checkQuizCompletion();
+  }, [selectedVideo?.videoId, userId]);
+
+  // Update canAccessNextVideo to check if quiz is completed or not needed
+  const canAccessNextVideo =
+    (maxCompletionPercent > 95 && quizCompletedForVideo) || // Quiz completed
+    (maxCompletionPercent > 95 && activeTab !== "quiz"); // Not on quiz tab yet
+
+  // Handle quiz completion - just refresh the check
+  const handleQuizCompleted = () => {
+    console.log("Quiz completed!");
+    setQuizCompletedForVideo(true);
+  };
+
   if (loading) {
     return (
       <div className="flex h-full">
@@ -327,10 +398,42 @@ const CourseDetailPage = () => {
     );
   }
 
-  // Find the current video index
-  const currentVideoIndex = selectedVideo
-    ? videos.findIndex((v) => v._id === selectedVideo._id)
-    : 0;
+  const handleNextVideo = () => {
+    if (canAccessNextVideo && nextVideo) {
+      handleVideoSelect(nextVideo);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+
+    // For desktop only
+    if (!isSmallScreen) {
+      if (value === "notes") {
+        // Close right sidebar and scroll to notes section
+        setRightSidebarOpen(false);
+        // Use setTimeout to ensure the DOM has updated before scrolling
+        setTimeout(() => {
+          if (notesRef.current) {
+            notesRef.current.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 100);
+      } else if (value === "assistant" || value === "quiz") {
+        // If clicking the same tab that's already active AND the sidebar is open
+        if (activeTab === value && rightSidebarOpen) {
+          // Close the sidebar
+          setRightSidebarOpen(false);
+        } else {
+          // Either opening a new tab or reopening after closing
+          setRightSidebarOpen(true);
+        }
+      }
+    }
+  };
+
+  const toggleRightSidebar = () => {
+    setRightSidebarOpen(false);
+  };
 
   return (
     <div className="flex h-full">
@@ -429,9 +532,9 @@ const CourseDetailPage = () => {
         </div>
       </div>
 
-      {/* Fixed Sidebar for Desktop */}
+      {/* Fixed Sidebar for Desktop - Left */}
       {!isSmallScreen && sidebarOpen && (
-        <div className="left-18 fixed top-32 z-10 hidden h-[calc(100vh-8rem)] w-72 bg-black md:block">
+        <div className="left-18 fixed top-32 z-10 hidden h-[calc(100vh-8rem)] w-72 bg-black transition-transform duration-300 ease-in-out md:block">
           <div className="custom-scrollbar h-full overflow-y-auto p-4">
             <div className="space-y-3">
               {videos.map((video, index) => {
@@ -491,125 +594,299 @@ const CourseDetailPage = () => {
         </div>
       )}
 
-      {/* Main Content - Adjust top padding to account for both navbars */}
+      {/* Fixed Sidebar for Desktop - Right */}
+      {!isSmallScreen && rightSidebarOpen && (
+        <div className="fixed right-0 top-32 z-10 hidden h-[calc(100vh-8rem)] w-1/3 border-l border-zinc-800 bg-black transition-transform duration-300 ease-in-out md:block">
+          <div className="relative h-full bg-black">
+            <button
+              onClick={toggleRightSidebar}
+              className="absolute right-4 top-4 rounded-full p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            >
+              <FiX className="size-5" />
+            </button>
+
+            <div className="h-full overflow-y-auto pt-12">
+              {activeTab === "assistant" && (
+                <BlurWrapper
+                  componentName="assistant"
+                  videoId={selectedVideo?.videoId || ""}
+                  userId={userId as string}
+                >
+                  <CourseAiAssistant
+                    userId={userId as string}
+                    videoId={selectedVideo?.videoId}
+                    currentTimestamp={currentPlaybackPosition}
+                    courseId={id as string}
+                    onSeekTo={(seconds) => {
+                      if (playerRef.current) {
+                        // @ts-expect-error - playerRef.current.seekTo exists but TypeScript doesn't know the type
+                        playerRef.current.seekTo(seconds);
+                      }
+                    }}
+                  />
+                </BlurWrapper>
+              )}
+
+              {activeTab === "quiz" && (
+                <CoursePracticeQuiz
+                  videoTitle={selectedVideo?.title || ""}
+                  videoId={selectedVideo?.videoId || ""}
+                  userId={userId as string}
+                  courseId={id as string}
+                  watchedPercent={maxCompletionPercent}
+                  onQuizCompleted={handleQuizCompleted}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
       <div
-        className={`flex-1 p-4 pt-16 ${
+        className={`flex-1 p-4 pt-16 transition-all duration-300 ease-in-out ${
           !isSmallScreen && sidebarOpen ? "ml-72" : ""
-        }`}
+        } ${!isSmallScreen && rightSidebarOpen ? "mr-[33.333%]" : ""}`}
       >
         {selectedVideo ? (
-          <div className="space-y-6">
-            {/* Video player */}
-            <div className="aspect-video w-full overflow-hidden rounded-lg bg-zinc-900">
-              <ReactPlayer
-                key={playerKey}
-                ref={playerRef}
-                url={selectedVideo.url}
-                width="100%"
-                height="100%"
-                playing={true}
-                controls={true}
-                onReady={() => {
-                  setPlayerReady(true);
-                  // Seek to initial position when player is ready
-                  if (initialStartPosition > 0 && playerRef.current) {
-                    // @ts-expect-error - playerRef.current.seekTo exists but TypeScript doesn't know the type
-                    playerRef.current.seekTo(initialStartPosition);
-                  }
-                }}
-                onProgress={(state) => {
-                  if (playerReady) {
-                    // Calculate current progress percentage
-                    const currentPercent = Math.round(state.played * 100);
-                    handleVideoProgress(currentPercent, state.playedSeconds);
-                  }
-                }}
-                config={{
-                  youtube: {
-                    playerVars: {
-                      rel: 0,
-                      modestbranding: 1,
-                      iv_load_policy: 3,
-                      disablekb: 1,
-                      showinfo: 0,
-                      origin:
-                        typeof window !== "undefined"
-                          ? window.location.origin
-                          : "",
-                    },
-                  },
-                }}
-              />
-            </div>
+          <div>
+            {/* Desktop-specific layout with tabs above video */}
+            {!isSmallScreen && (
+              <div className="mb-6">
+                <Tabs value={activeTab} className="w-full">
+                  <div className="flex justify-end">
+                    <TabsList className="mb-4 flex w-auto justify-end rounded-lg border border-zinc-800 bg-black p-1">
+                      <TabsTrigger
+                        value="notes"
+                        onClick={() => handleTabChange("notes")}
+                        data-state={activeTab === "notes" ? "active" : ""}
+                        className="rounded-md data-[state=active]:bg-gradient-yellow data-[state=active]:text-black"
+                      >
+                        Notes
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="assistant"
+                        onClick={() => handleTabChange("assistant")}
+                        data-state={activeTab === "assistant" ? "active" : ""}
+                        className="rounded-md data-[state=active]:bg-gradient-yellow data-[state=active]:text-black"
+                      >
+                        AI Assistant
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="quiz"
+                        onClick={() => handleTabChange("quiz")}
+                        data-state={activeTab === "quiz" ? "active" : ""}
+                        className="rounded-md data-[state=active]:bg-gradient-yellow data-[state=active]:text-black"
+                      >
+                        Practice Questions
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                </Tabs>
+              </div>
+            )}
 
-            {/* Video Title moved below video */}
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-white">
-                {selectedVideo.title}
-              </h1>
-              <button
-                onClick={() => window.history.back()}
-                className="text-sm text-zinc-400 hover:text-white"
+            {/* Main layout - Adjusts based on both small screen and sidebar states */}
+            <div className={`${!isSmallScreen ? "flex gap-6" : "space-y-6"}`}>
+              {/* Left column with video and notes */}
+              <div
+                className={`${
+                  !isSmallScreen && rightSidebarOpen ? "w-full" : "w-full"
+                }`}
               >
-                Back
-              </button>
-            </div>
+                {/* Video player */}
+                <div className="aspect-video w-full overflow-hidden rounded-lg bg-zinc-900">
+                  <ReactPlayer
+                    // key={playerKey}
+                    ref={playerRef}
+                    url={selectedVideo.url}
+                    width="100%"
+                    height="100%"
+                    playing={true}
+                    controls={true}
+                    onReady={() => {
+                      setPlayerReady(true);
+                      // Seek to initial position when player is ready
+                      if (initialStartPosition > 0 && playerRef.current) {
+                        // @ts-expect-error - playerRef.current.seekTo exists but TypeScript doesn't know the type
+                        playerRef.current.seekTo(initialStartPosition);
+                        console.log(
+                          "Seeking to saved position:",
+                          initialStartPosition
+                        );
+                      }
+                    }}
+                    onProgress={(state) => {
+                      if (playerReady) {
+                        // Calculate current progress percentage
+                        const currentPercent = Math.round(state.played * 100);
+                        handleVideoProgress(
+                          currentPercent,
+                          state.playedSeconds
+                        );
+                        setCurrentPlaybackPosition(state.playedSeconds);
+                      }
+                    }}
+                    config={{
+                      youtube: {
+                        playerVars: {
+                          rel: 0,
+                          modestbranding: 1,
+                          iv_load_policy: 3,
+                          disablekb: 1,
+                          showinfo: 0,
+                          origin:
+                            typeof window !== "undefined"
+                              ? window.location.origin
+                              : "",
+                        },
+                      },
+                    }}
+                  />
+                </div>
 
-            {/* Progress bar */}
-            <div className="space-y-2">
-              <div className="h-1.5 w-full rounded-full bg-zinc-800">
-                <div
-                  className="h-1.5 rounded-full bg-[#f0bb1c]"
-                  style={{ width: `${maxCompletionPercent}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-xs text-zinc-400">
-                <span>{maxCompletionPercent}% complete</span>
-                <span>
-                  {currentVideoIndex + 1} of {videos.length}
-                </span>
-              </div>
-            </div>
-
-            {/* Enhanced Notes Section with Markdown Editor */}
-            <div className="rounded-lg border border-zinc-800 bg-black/40 p-4">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-medium text-white">Your Notes</h3>
-                <button
-                  onClick={handleSaveNote}
-                  disabled={isSavingNote}
-                  className="flex items-center justify-center rounded bg-[#f0bb1c] px-4 py-2 text-sm font-medium text-black hover:bg-[#f0bb1c]/80"
-                >
-                  {isSavingNote ? (
-                    "Saving..."
-                  ) : (
-                    <>
-                      <FiSave className="mr-2" /> Save Notes
-                    </>
+                {/* Video Title with Next Video button */}
+                <div className="my-4 flex items-center justify-between">
+                  <h1 className="text-xl font-bold text-white">
+                    {selectedVideo.title}
+                  </h1>
+                  {nextVideo && (
+                    <button
+                      onClick={handleNextVideo}
+                      disabled={!canAccessNextVideo}
+                      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm ${
+                        canAccessNextVideo
+                          ? "bg-gradient-yellow text-black hover:bg-gradient-yellow-hover"
+                          : "cursor-not-allowed bg-zinc-800 text-zinc-500"
+                      }`}
+                    >
+                      Next Video
+                      <FiChevronRight />
+                    </button>
                   )}
-                </button>
-              </div>
+                </div>
 
-              {/* Note Title */}
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={noteTitle}
-                  onChange={(e) => setNoteTitle(e.target.value)}
-                  placeholder="Note Title"
-                  className="w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-white"
-                />
-              </div>
+                {/* Progress bar */}
+                <div className="mb-6 space-y-2">
+                  <div className="h-1.5 w-full rounded-full bg-zinc-800">
+                    <div
+                      className="h-1.5 rounded-full bg-gradient-yellow"
+                      style={{ width: `${maxCompletionPercent}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-zinc-400">
+                    <span>{maxCompletionPercent}% complete</span>
+                    <span>
+                      {currentVideoIndex + 1} of {videos.length}
+                    </span>
+                  </div>
+                </div>
 
-              {/* Markdown Editor */}
-              <div data-color-mode="dark">
-                <MDEditor
-                  value={noteContent}
-                  onChange={(val) => setNoteContent(val || "")}
-                  height={300}
-                  preview="edit"
-                  className="border border-zinc-800"
-                />
+                {/* Mobile tabs or desktop Notes tab */}
+                {isSmallScreen ? (
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={handleTabChange}
+                    className="w-full"
+                  >
+                    <TabsList className="mb-4 flex w-full justify-between rounded-lg border border-zinc-800 bg-black p-1">
+                      <TabsTrigger
+                        value="notes"
+                        className="flex-1 rounded-md data-[state=active]:bg-gradient-yellow data-[state=active]:text-black"
+                      >
+                        Notes
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="assistant"
+                        className="flex-1 rounded-md data-[state=active]:bg-gradient-yellow data-[state=active]:text-black"
+                      >
+                        AI Assistant
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="quiz"
+                        className="flex-1 rounded-md data-[state=active]:bg-gradient-yellow data-[state=active]:text-black"
+                      >
+                        Practice Questions
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="notes">
+                      <BlurWrapper
+                        componentName="notes"
+                        videoId={selectedVideo?.videoId || ""}
+                        userId={userId as string}
+                      >
+                        <CourseNotes
+                          noteContent={noteContent}
+                          noteTitle={noteTitle}
+                          isSavingNote={isSavingNote}
+                          onNoteContentChange={(content) =>
+                            setNoteContent(content)
+                          }
+                          onNoteTitleChange={(title) => setNoteTitle(title)}
+                          onSaveNote={handleSaveNote}
+                        />
+                      </BlurWrapper>
+                    </TabsContent>
+
+                    <TabsContent value="assistant">
+                      <BlurWrapper
+                        componentName="assistant"
+                        videoId={selectedVideo?.videoId || ""}
+                        userId={userId as string}
+                      >
+                        <CourseAiAssistant
+                          userId={userId as string}
+                          videoId={selectedVideo?.videoId}
+                          currentTimestamp={currentPlaybackPosition}
+                          courseId={id as string}
+                          onSeekTo={(seconds) => {
+                            if (playerRef.current) {
+                              // @ts-expect-error - playerRef.current.seekTo exists but TypeScript doesn't know the type
+                              playerRef.current.seekTo(seconds);
+                            }
+                          }}
+                        />
+                      </BlurWrapper>
+                    </TabsContent>
+
+                    <TabsContent value="quiz">
+                      {/* Only render quiz component in mobile view here */}
+                      <CoursePracticeQuiz
+                        videoTitle={selectedVideo.title}
+                        videoId={selectedVideo.videoId}
+                        userId={userId as string}
+                        courseId={id as string}
+                        watchedPercent={maxCompletionPercent}
+                        onQuizCompleted={handleQuizCompleted}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                ) : (
+                  // Always show notes in desktop mode (regardless of active tab)
+                  <div
+                    ref={notesRef}
+                    id="notes-section"
+                    className="scroll-mt-16"
+                  >
+                    <BlurWrapper
+                      componentName="notes"
+                      videoId={selectedVideo?.videoId || ""}
+                      userId={userId as string}
+                    >
+                      <CourseNotes
+                        noteContent={noteContent}
+                        noteTitle={noteTitle}
+                        isSavingNote={isSavingNote}
+                        onNoteContentChange={(content) =>
+                          setNoteContent(content)
+                        }
+                        onNoteTitleChange={(title) => setNoteTitle(title)}
+                        onSaveNote={handleSaveNote}
+                      />
+                    </BlurWrapper>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -623,4 +900,4 @@ const CourseDetailPage = () => {
   );
 };
 
-export default CourseDetailPage;
+export default CourseContent;
