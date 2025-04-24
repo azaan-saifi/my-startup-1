@@ -1,12 +1,23 @@
 "use client";
 
-import React from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FiBookOpen, FiPlus } from "react-icons/fi";
 
 import CourseManagement from "@/components/admin/CourseManagement";
 import CoursesDistribution from "@/components/admin/CoursesDistribution";
 import StatCard from "@/components/admin/StatCard";
+import { getAllCourses } from "@/lib/actions/course.action";
+
+// Define the Course interface
+interface Course {
+  _id: string;
+  title: string;
+  thumbnail: string;
+  lessons: string;
+  playlistId?: string;
+}
 
 const fadeIn = {
   hidden: { opacity: 0, y: 10 },
@@ -21,6 +32,30 @@ const fadeIn = {
 };
 
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const coursesData = await getAllCourses();
+        const parsedCourses = JSON.parse(coursesData);
+        setCourses(parsedCourses);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const handleCreateCourse = () => {
+    router.push("/admin/courses/create");
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -29,7 +64,10 @@ export default function CoursesPage() {
           <p className="mt-1 text-zinc-400">Manage your course catalog</p>
         </div>
         
-        <button className="flex items-center gap-2 rounded-md bg-[#ffc20b31] px-4 py-2 text-sm font-medium text-[#f0bb1c] transition-colors hover:bg-[#ffc20b50]">
+        <button 
+          onClick={handleCreateCourse}
+          className="flex items-center gap-2 rounded-md bg-[#ffc20b31] px-4 py-2 text-sm font-medium text-[#f0bb1c] transition-colors hover:bg-[#ffc20b50]"
+        >
           <FiPlus />
           <span>Create New Course</span>
         </button>
@@ -43,8 +81,8 @@ export default function CoursesPage() {
         >
           <StatCard
             title="Total Courses"
-            value="38"
-            change="6"
+            value={loading ? "..." : String(courses.length)}
+            change=""
             isPositive={true}
             icon={<FiBookOpen size={20} />}
           />
@@ -67,11 +105,11 @@ export default function CoursesPage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#f0bb1c]"></div>
-                  <span>Include a mix of video, text, and interactive content</span>
+                  <span>Include videos that teach skills in a logical progression</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#f0bb1c]"></div>
-                  <span>Add practical exercises and assessments</span>
+                  <span>Add practice quizzes to test students' knowledge</span>
                 </li>
               </ul>
             </div>
@@ -81,10 +119,10 @@ export default function CoursesPage() {
       
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <CourseManagement />
+          <CourseManagement courses={courses} loading={loading} setCourses={setCourses} />
         </div>
         <div>
-          <CoursesDistribution />
+          <CoursesDistribution courses={courses} loading={loading} />
         </div>
       </div>
       

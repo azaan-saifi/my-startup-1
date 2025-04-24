@@ -43,12 +43,22 @@ interface PineconeMetadata {
   text: string;
 }
 
-interface QuizQuestion {
+interface ReinforcementQuestion {
   question: string;
   options: string[];
   correctAnswer: number;
   explanation: string;
 }
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  startTime: number;
+  reinforcementQuestions: ReinforcementQuestion[];
+}
+
 interface QuizTool {
   id: string;
   name: string;

@@ -51,10 +51,6 @@ export default function SignInPage() {
               <>
                 <SignIn.Step name="start">
                   <Card className="relative w-full overflow-hidden border border-zinc-700/50 bg-dark-200/90 text-white backdrop-blur-sm sm:w-full">
-                    {/* Decorative element */}
-                    <div className="absolute -right-20 -top-20 size-40 rounded-full bg-gradient-yellow opacity-20 blur-3xl"></div>
-                    <div className="absolute -bottom-20 -left-20 size-40 rounded-full bg-primary-100 opacity-20 blur-3xl"></div>
-
                     <CardHeader className="pb-4">
                       <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-gradient-yellow">
                         <Icons.logo className="size-7 text-dark-hard" />

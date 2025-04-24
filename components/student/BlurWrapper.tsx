@@ -26,6 +26,7 @@ const BlurWrapper = ({
   // Check if quiz is active for this video
   useEffect(() => {
     const checkQuizState = async () => {
+      console.log("Checking quiz state...");
       if (!videoId || !userId) {
         setIsBlurred(false);
         setIsLoading(false);
@@ -46,6 +47,7 @@ const BlurWrapper = ({
 
         // Then check if quiz has been started but not completed
         const progressData = await getQuizProgress(videoId, userId);
+
         const progress = JSON.parse(progressData);
 
         // Only blur if quiz has started but not completed

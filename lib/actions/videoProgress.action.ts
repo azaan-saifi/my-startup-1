@@ -1,5 +1,6 @@
 "use server";
 
+import { ObjectId } from "mongodb";
 import { revalidatePath } from "next/cache";
 
 import { updateEnrollmentCompletion } from "@/lib/actions/userEnrollment.action";
@@ -20,15 +21,6 @@ export async function updateVideoProgress(
     await connectToDatabase();
 
     if (!userId) throw new Error("Unauthorized");
-
-    // Debug log
-    console.log("Updating progress with values:", {
-      videoId,
-      courseId,
-      watchedPercent,
-      userId,
-      playbackPositionSeconds,
-    });
 
     // Mark as completed if watched more than 90%
     const completed = watchedPercent >= 90;
@@ -233,6 +225,41 @@ export async function migrateVideoProgressRecords() {
     };
   } catch (error) {
     console.error("Error migrating video progress records:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Update the video playback position
+ */
+export async function updateVideoTime(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  videoProgressId: any,
+  userId: string,
+  playbackPositionSeconds: number
+) {
+  try {
+    const id = ObjectId.createFromHexString(videoProgressId);
+
+    await connectToDatabase();
+
+    if (!userId) throw new Error("Unauthorized");
+
+    // Find the video progress record
+    const progressRecord = await VideoProgress.findOne({
+      userId,
+      videoId: id,
+    });
+
+    // Update existing record with new playback position
+    progressRecord.playbackPositionSeconds = playbackPositionSeconds;
+    progressRecord.lastWatchedAt = new Date();
+    await progressRecord.save();
+
+    console.log("Updated video playback position to:", playbackPositionSeconds);
+    return { success: true, position: playbackPositionSeconds };
+  } catch (error) {
+    console.error("Error updating video time:", error);
     return { success: false, error: (error as Error).message };
   }
 }

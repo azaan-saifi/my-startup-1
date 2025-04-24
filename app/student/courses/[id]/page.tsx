@@ -190,6 +190,7 @@ const CourseContent = () => {
   const handleVideoSelect = async (video: Video) => {
     // Check if the user can access this video
     const videoIndex = videos.findIndex((v) => v._id === video._id);
+    console.log("Video index:", videoIndex);
 
     // If it's not the first video, check if previous videos are completed
     if (videoIndex > 0) {
@@ -210,7 +211,6 @@ const CourseContent = () => {
     // Load video progress
     if (userId) {
       const progressData = await getVideoProgress(video._id, userId);
-      console.log("Video progress data:", progressData); // Debug log for video progress
 
       if (progressData) {
         const progress = JSON.parse(progressData);
@@ -368,6 +368,11 @@ const CourseContent = () => {
   const handleQuizCompleted = () => {
     console.log("Quiz completed!");
     setQuizCompletedForVideo(true);
+
+    // Navigate to the next video if available
+    if (nextVideo) {
+      handleNextVideo();
+    }
   };
 
   if (loading) {
@@ -596,7 +601,7 @@ const CourseContent = () => {
 
       {/* Fixed Sidebar for Desktop - Right */}
       {!isSmallScreen && rightSidebarOpen && (
-        <div className="fixed right-0 top-32 z-10 hidden h-[calc(100vh-8rem)] w-1/3 border-l border-zinc-800 bg-black transition-transform duration-300 ease-in-out md:block">
+        <div className="fixed right-0 top-32 z-10 hidden h-[calc(100vh-8rem)] w-2/5 border-l border-zinc-800 bg-black transition-transform duration-300 ease-in-out md:block">
           <div className="relative h-full bg-black">
             <button
               onClick={toggleRightSidebar}
@@ -631,10 +636,18 @@ const CourseContent = () => {
                 <CoursePracticeQuiz
                   videoTitle={selectedVideo?.title || ""}
                   videoId={selectedVideo?.videoId || ""}
+                  videoProgressId={selectedVideo?._id || ""}
+                  setCurrentPlaybackPosition={setCurrentPlaybackPosition}
                   userId={userId as string}
                   courseId={id as string}
                   watchedPercent={maxCompletionPercent}
                   onQuizCompleted={handleQuizCompleted}
+                  onSeekTo={(seconds) => {
+                    if (playerRef.current) {
+                      // @ts-expect-error - playerRef.current.seekTo exists but TypeScript doesn't know the type
+                      playerRef.current.seekTo(seconds);
+                    }
+                  }}
                 />
               )}
             </div>
@@ -646,7 +659,7 @@ const CourseContent = () => {
       <div
         className={`flex-1 p-4 pt-16 transition-all duration-300 ease-in-out ${
           !isSmallScreen && sidebarOpen ? "ml-72" : ""
-        } ${!isSmallScreen && rightSidebarOpen ? "mr-[33.333%]" : ""}`}
+        } ${!isSmallScreen && rightSidebarOpen ? "mr-[40%]" : ""}`}
       >
         {selectedVideo ? (
           <div>
@@ -811,22 +824,16 @@ const CourseContent = () => {
                     </TabsList>
 
                     <TabsContent value="notes">
-                      <BlurWrapper
-                        componentName="notes"
-                        videoId={selectedVideo?.videoId || ""}
-                        userId={userId as string}
-                      >
-                        <CourseNotes
-                          noteContent={noteContent}
-                          noteTitle={noteTitle}
-                          isSavingNote={isSavingNote}
-                          onNoteContentChange={(content) =>
-                            setNoteContent(content)
-                          }
-                          onNoteTitleChange={(title) => setNoteTitle(title)}
-                          onSaveNote={handleSaveNote}
-                        />
-                      </BlurWrapper>
+                      <CourseNotes
+                        noteContent={noteContent}
+                        noteTitle={noteTitle}
+                        isSavingNote={isSavingNote}
+                        onNoteContentChange={(content) =>
+                          setNoteContent(content)
+                        }
+                        onNoteTitleChange={(title) => setNoteTitle(title)}
+                        onSaveNote={handleSaveNote}
+                      />
                     </TabsContent>
 
                     <TabsContent value="assistant">
@@ -855,10 +862,18 @@ const CourseContent = () => {
                       <CoursePracticeQuiz
                         videoTitle={selectedVideo.title}
                         videoId={selectedVideo.videoId}
+                        videoProgressId={selectedVideo._id}
+                        setCurrentPlaybackPosition={setCurrentPlaybackPosition}
                         userId={userId as string}
                         courseId={id as string}
                         watchedPercent={maxCompletionPercent}
                         onQuizCompleted={handleQuizCompleted}
+                        onSeekTo={(seconds) => {
+                          if (playerRef.current) {
+                            // @ts-expect-error - playerRef.current.seekTo exists but TypeScript doesn't know the type
+                            playerRef.current.seekTo(seconds);
+                          }
+                        }}
                       />
                     </TabsContent>
                   </Tabs>
@@ -869,22 +884,14 @@ const CourseContent = () => {
                     id="notes-section"
                     className="scroll-mt-16"
                   >
-                    <BlurWrapper
-                      componentName="notes"
-                      videoId={selectedVideo?.videoId || ""}
-                      userId={userId as string}
-                    >
-                      <CourseNotes
-                        noteContent={noteContent}
-                        noteTitle={noteTitle}
-                        isSavingNote={isSavingNote}
-                        onNoteContentChange={(content) =>
-                          setNoteContent(content)
-                        }
-                        onNoteTitleChange={(title) => setNoteTitle(title)}
-                        onSaveNote={handleSaveNote}
-                      />
-                    </BlurWrapper>
+                    <CourseNotes
+                      noteContent={noteContent}
+                      noteTitle={noteTitle}
+                      isSavingNote={isSavingNote}
+                      onNoteContentChange={(content) => setNoteContent(content)}
+                      onNoteTitleChange={(title) => setNoteTitle(title)}
+                      onSaveNote={handleSaveNote}
+                    />
                   </div>
                 )}
               </div>

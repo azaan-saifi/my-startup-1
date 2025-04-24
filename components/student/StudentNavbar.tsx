@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FiBook, FiHome, FiMenu, FiUser, FiX } from "react-icons/fi";
+import { FiBook, FiHome, FiMenu, FiX } from "react-icons/fi";
 
 const StudentNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,11 +42,11 @@ const StudentNavbar = () => {
       href: "/student/courses",
       icon: <FiBook className="size-5" />,
     },
-    {
-      name: "Profile",
-      href: "/student/profile",
-      icon: <FiUser className="size-5" />,
-    },
+    // {
+    //   name: "Profile",
+    //   href: "/student/profile",
+    //   icon: <FiUser className="size-5" />,
+    // },
   ];
 
   return (
@@ -88,15 +88,15 @@ const StudentNavbar = () => {
                       className={`relative flex items-center space-x-1 p-2 transition-all`}
                     >
                       <span
-                        className={`transition-all duration-200 ${
-                          active ? "text-yellow-400" : ""
+                        className={`transition-all duration-200 hover:text-yellow-400 ${
+                          active ? "text-yellow-400" : "text-white"
                         }`}
                       >
                         {item.icon}
                       </span>
                       <span
-                        className={`transition-all duration-200 ${
-                          active ? "text-yellow-400" : ""
+                        className={`transition-all duration-200 hover:text-yellow-400 ${
+                          active ? "text-yellow-400" : "text-white"
                         }`}
                       >
                         {item.name}

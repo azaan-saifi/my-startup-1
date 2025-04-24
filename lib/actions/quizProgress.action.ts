@@ -1,6 +1,9 @@
 "use server";
+import { ObjectId } from "mongodb";
 
-import QuizProgress from "../database/models/quizProgress.model";
+import QuizProgress, {
+  QuizQuestion,
+} from "../database/models/quizProgress.model";
 import { connectToDatabase } from "../database/mongoose";
 
 // Interface for quiz state to be saved/updated
@@ -12,7 +15,50 @@ export interface QuizState {
   showExplanations?: boolean[];
   correctAnswers?: boolean[];
   attemptedReinforcement?: boolean[];
+  reinforcementIndex?: number[];
   mastered?: boolean[];
+  questions?: QuizQuestion[]; // Add questions to the state
+  currentAttemptId?: string; // Current quiz attempt ID
+}
+
+/**
+ * Get quiz progress by its MongoDB ID
+ */
+export async function getQuizProgressById(quizProgressId: string) {
+  try {
+    await connectToDatabase();
+
+    const id = ObjectId.createFromHexString(quizProgressId);
+
+    // Find progress record by its ID
+    const quizProgress = await QuizProgress.findById(id);
+
+    // If no record exists, return empty object
+    if (!quizProgress) {
+      return JSON.stringify({
+        _id: null,
+        quizStarted: false,
+        quizCompleted: false,
+        currentQuestionIndex: 0,
+        selectedAnswers: [],
+        showExplanations: [],
+        correctAnswers: [],
+        attemptedReinforcement: [],
+        reinforcementIndex: [],
+        mastered: [],
+        questions: [], // No questions loaded yet
+      });
+    }
+
+    // Convert _id to string to ensure it's properly serialized
+    const result = quizProgress.toObject();
+    result._id = result._id.toString();
+
+    return JSON.stringify(result);
+  } catch (error) {
+    console.error("Error getting quiz progress by ID:", error);
+    throw error;
+  }
 }
 
 /**
@@ -31,6 +77,7 @@ export async function getQuizProgress(videoId: string, userId: string) {
     // If no record exists, return empty object
     if (!quizProgress) {
       return JSON.stringify({
+        _id: null,
         quizStarted: false,
         quizCompleted: false,
         currentQuestionIndex: 0,
@@ -38,11 +85,17 @@ export async function getQuizProgress(videoId: string, userId: string) {
         showExplanations: [],
         correctAnswers: [],
         attemptedReinforcement: [],
+        reinforcementIndex: [],
         mastered: [],
+        questions: [], // No questions loaded yet
       });
     }
 
-    return JSON.stringify(quizProgress.toObject());
+    // Convert _id to string to ensure it's properly serialized
+    const result = quizProgress.toObject();
+    result._id = result._id.toString();
+
+    return JSON.stringify(result);
   } catch (error) {
     console.error("Error getting quiz progress:", error);
     throw error;
@@ -67,16 +120,89 @@ export async function updateQuizProgress(
       updatedAt: new Date(),
     };
 
-    // Update or create the record
-    const result = await QuizProgress.findOneAndUpdate(
-      { videoId, userId, courseId },
-      { $set: updateData },
-      { new: true, upsert: true }
-    );
+    // First, check if a record already exists
+    const existingRecord = await QuizProgress.findOne({ videoId, userId });
 
-    return JSON.stringify(result.toObject());
+    if (existingRecord) {
+      console.log("Updating existing record:", existingRecord._id);
+      // Update existing record
+      const result = await QuizProgress.findOneAndUpdate(
+        { _id: existingRecord._id },
+        { $set: updateData },
+        { new: true }
+      );
+
+      // Convert _id to string for client-side use
+      const resultObj = result.toObject();
+      resultObj._id = resultObj._id.toString();
+
+      return JSON.stringify(resultObj);
+    } else {
+      console.log("Creating new record");
+      // Create a new record
+      const newProgressData = {
+        userId,
+        videoId,
+        courseId,
+        ...updateData,
+      };
+
+      // Log what we're saving
+      console.log("Saving QuizProgress with data:", newProgressData);
+
+      const newProgress = new QuizProgress(newProgressData);
+      const savedProgress = await newProgress.save();
+
+      console.log("Saved QuizProgress document:", savedProgress._id);
+
+      // Convert _id to string for client-side use
+      const savedObj = savedProgress.toObject();
+      savedObj._id = savedObj._id.toString();
+
+      return JSON.stringify(savedObj);
+    }
   } catch (error) {
     console.error("Error updating quiz progress:", error);
+    throw error;
+  }
+}
+
+/**
+ * Update quiz progress by its MongoDB ID
+ */
+export async function updateQuizProgressById(
+  quizProgressId: string,
+  quizState: QuizState
+) {
+  try {
+    await connectToDatabase();
+
+    // Create the update object
+    const updateData = {
+      ...quizState,
+      updatedAt: new Date(),
+    };
+
+    const id = ObjectId.createFromHexString(quizProgressId);
+
+    // Update the record by ID
+    const result = await QuizProgress.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!result) {
+      throw new Error(`Quiz progress with ID ${quizProgressId} not found`);
+    }
+
+    // Convert _id to string for client-side use
+    const resultObj = result.toObject();
+    resultObj._id = resultObj._id.toString();
+
+    return JSON.stringify(resultObj);
+  } catch (error) {
+    console.error("Error updating quiz progress by ID:", error);
     throw error;
   }
 }
@@ -97,30 +223,6 @@ export async function isQuizCompleted(videoId: string, userId: string) {
     return !!quizProgress;
   } catch (error) {
     console.error("Error checking quiz completion:", error);
-    throw error;
-  }
-}
-
-/**
- * Mark quiz as completed for a specific video
- */
-export async function completeQuiz(
-  videoId: string,
-  userId: string,
-  courseId: string
-) {
-  try {
-    await connectToDatabase();
-
-    const result = await QuizProgress.findOneAndUpdate(
-      { videoId, userId, courseId },
-      { $set: { quizCompleted: true, updatedAt: new Date() } },
-      { new: true, upsert: true }
-    );
-
-    return JSON.stringify(result.toObject());
-  } catch (error) {
-    console.error("Error completing quiz:", error);
     throw error;
   }
 }
